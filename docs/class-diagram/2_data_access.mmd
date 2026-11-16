@@ -7,9 +7,9 @@ direction TB
     +GetAll() List~T~
     +Query(Func~T,bool~ filter) List~T~
   }
-  class SqliteRepositoryBase {
+  class PostgresRepositoryBase {
     <<abstract>>
-    #OpenConnection() SqliteConnection
+    #OpenConnection() NpgsqlConnection
     #ExecuteNonQuery() int
     #InsertAndGetId() int
     #ReadList() List~T~
@@ -53,13 +53,13 @@ direction TB
     +EnsureCreated(string connectionString, string schemaSqlPath) void
   }
 
-SqliteRepositoryBase <|-- UserProfileRepository
-SqliteRepositoryBase <|-- CityRepository
-SqliteRepositoryBase <|-- WatchlistRepository
-SqliteRepositoryBase <|-- HistoricalObservationRepository
-SqliteRepositoryBase <|-- BaselineRepository
-SqliteRepositoryBase <|-- AdvisoryRepository
-SqliteRepositoryBase <|-- AnomalyEventRepository
+PostgresRepositoryBase <|-- UserProfileRepository
+PostgresRepositoryBase <|-- CityRepository
+PostgresRepositoryBase <|-- WatchlistRepository
+PostgresRepositoryBase <|-- HistoricalObservationRepository
+PostgresRepositoryBase <|-- BaselineRepository
+PostgresRepositoryBase <|-- AdvisoryRepository
+PostgresRepositoryBase <|-- AnomalyEventRepository
 DatabaseInitializer ..> DatabaseConfig
 IRepository~T~ <|.. UserProfileRepository
 IRepository~T~ <|.. CityRepository

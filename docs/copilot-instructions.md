@@ -12,4 +12,4 @@ Hard rules in short:
 - Run `dotnet build` and `dotnet test` when they exist, and report real results. Do not invent results, links or package names.
 - Mention in the PR that AI helped.
 
-Stack: Windows desktop app. WPF with Blazor Hybrid (`BlazorWebView`) in `frontend/`, services and repositories in `backend/`, contract in `shared/ClimaPulse.Contracts`, SQLite, .NET 10.
+Stack: Windows desktop app. WPF with Blazor Hybrid (`BlazorWebView`) in `frontend/`, services and repositories in `backend/`, contract in `shared/ClimaPulse.Contracts`, PostgreSQL (Npgsql), .NET 10.
