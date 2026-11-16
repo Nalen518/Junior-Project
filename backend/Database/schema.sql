@@ -69,7 +69,7 @@ CREATE TABLE Advisory (
     body           TEXT    NOT NULL CHECK (length(body) <= 2000),
     version        INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
     effective_from TEXT    NOT NULL DEFAULT (to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
-    UNIQUE (metric_type, severity_tier, locale, version)
+    UNIQUE (metric_type, severity_tier, locale, category, version)
 );
 
 CREATE TABLE AnomalyEvent (
