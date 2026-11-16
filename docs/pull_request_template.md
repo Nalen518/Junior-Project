@@ -10,12 +10,10 @@
 
 <!-- Paste the commands you ran and what you saw. -->
 
-## AI disclosure
+## Ownership
 
-- [ ] No AI tool was used for this change
-- [ ] AI helped. Tool and model: ____________
 - [ ] I read the whole diff and can explain every change
-- [ ] I ran the code myself (not only the agent)
+- [ ] I ran the code myself
 
 ## Checklist
 

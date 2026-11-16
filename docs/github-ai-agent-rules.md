@@ -8,13 +8,12 @@ Everyone on the ClimaPulse team may use AI tools (Claude Code, GitHub Copilot, C
 
 ---
 
-## 1. The five rules that matter most
+## 1. The four rules that matter most
 
 1. **You own what the agent writes.** The person who prompts the agent is the author of the change and must be able to explain every line in the review.
 2. **Agents work on feature branches only.** Never on `main`, never on another member's branch.
 3. **A human merges, after another human reviews.** An agent never merges, approves, or force-pushes.
 4. **No secrets in prompts or in git.** Not in a chat window, not in a commit, not in a screenshot.
-5. **Say when AI helped.** Tick the AI disclosure box in the PR template.
 
 The rest of this file explains each rule and the small procedures behind it.
 
@@ -40,7 +39,7 @@ Commit messages follow Conventional Commits, for example `feat(watchlist): imple
 
 ## 3. Pull requests and review
 
-1. Open a PR from your branch to `main` using the PR template. Fill in every section, including the AI disclosure.
+1. Open a PR from your branch to `main` using the PR template. Fill in every section.
 2. At least **one teammate who is not the author** reviews. Review means reading the diff, building, and running the feature, not just clicking Approve.
 3. The reviewer checks the points in section 7.
 4. The author merges after approval. Merge PRs one at a time, then everyone runs `git pull` on `main`.
