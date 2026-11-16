@@ -46,16 +46,15 @@ public class AdvisoryRepository : PostgresRepositoryBase, IRepository<Advisory>
         GetAll().Where(filter).ToList();
 
     /// <summary>
-    /// The current advisory for a metric, tier and locale: the highest version whose
-    /// effective_from is not in the future. Returns null if there is none.
+    /// The current advisories for a metric, tier and locale: per category (health, climate)
+    /// the highest version whose effective_from is not in the future. Empty if there is none.
     /// </summary>
-    public Advisory? GetLatest(MetricType metric, SeverityTier tier, string locale) =>
+    public List<Advisory> GetLatest(MetricType metric, SeverityTier tier, string locale) =>
         ReadList(
-            $@"SELECT {Columns} FROM Advisory
+            $@"SELECT DISTINCT ON (category) {Columns} FROM Advisory
                WHERE metric_type = @metric AND severity_tier = @tier AND locale = @locale
                  AND effective_from <= @now
-               ORDER BY version DESC
-               LIMIT 1",
+               ORDER BY category, version DESC",
             Map,
             cmd =>
             {
@@ -63,7 +62,7 @@ public class AdvisoryRepository : PostgresRepositoryBase, IRepository<Advisory>
                 AddParam(cmd, "@tier", tier.ToDb());
                 AddParam(cmd, "@locale", locale);
                 AddParam(cmd, "@now", DateTime.UtcNow.ToDb());
-            }).FirstOrDefault();
+            });
 
     private static Advisory Map(NpgsqlDataReader r) => new()
     {

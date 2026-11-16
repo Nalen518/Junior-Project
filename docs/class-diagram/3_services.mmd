@@ -19,7 +19,7 @@ direction TB
     +AssignTier(double zScore) SeverityTier
   }
   class AdvisoryService {
-    +GetAdvisory(AnomalyResult result) List~string~
+    +GetLatest(MetricType metric, SeverityTier tier, string locale) List~Advisory~
   }
   class ClimateTwinEngine {
     +FindTwin(AnomalyResult result) City
@@ -59,6 +59,7 @@ AnomalyDetectionService --> WeatherService
 AnomalyDetectionService --> BaselineRepository
 AnomalyDetectionService --> AnomalyEventRepository
 AnomalyDetectionService ..> AnomalyResult
-AdvisoryService ..> AnomalyResult
+AdvisoryService --> AdvisoryRepository
+AdvisoryService ..> Advisory
 ClimateTwinEngine ..> AnomalyResult
 DashboardState ..> AnomalyResult

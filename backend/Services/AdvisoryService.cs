@@ -1,24 +1,41 @@
+using ClimaPulse.Enums;
 using ClimaPulse.Models;
+using ClimaPulse.Repositories;
 
 namespace ClimaPulse.Services;
 
-/// <summary>Advisory rule — extend with Condition and Message properties when implementing.</summary>
-public class AdvisoryRule
-{
-    // TODO: define Condition (Predicate<AnomalyResult>) and Message (string)
-}
-
+/// <summary>
+/// Picks the advisories to show for an active anomaly (SRD FR-19). The text lives in the
+/// Advisory table (loaded from seed.sql), not in code. Will back IAdvisoryService.GetLatestAsync
+/// once the Contracts project exists (docs/api-contract.md, section 5).
+/// </summary>
 public class AdvisoryService
 {
-    private readonly List<AdvisoryRule> _ruleSet;
+    /// <summary>Used when the user's language has no advisory for this metric and tier.</summary>
+    public const string FallbackLocale = "id-ID";
 
-    public AdvisoryService(List<AdvisoryRule> ruleSet)
+    private readonly AdvisoryRepository _advisoryRepo;
+
+    public AdvisoryService(AdvisoryRepository advisoryRepo)
     {
-        _ruleSet = ruleSet;
+        ArgumentNullException.ThrowIfNull(advisoryRepo);
+        _advisoryRepo = advisoryRepo;
     }
 
-    public List<string> GetAdvisory(AnomalyResult result)
+    /// <summary>
+    /// Latest version per category (health, climate) for a metric, tier and locale, falling
+    /// back to id-ID when the locale has none. Normal means no anomaly, so it returns nothing.
+    /// </summary>
+    public List<Advisory> GetLatest(MetricType metric, SeverityTier tier, string locale)
     {
-        throw new NotImplementedException();
+        ArgumentException.ThrowIfNullOrWhiteSpace(locale);
+        if (tier == SeverityTier.Normal)
+            return [];
+
+        var advisories = _advisoryRepo.GetLatest(metric, tier, locale);
+        if (advisories.Count == 0 && locale != FallbackLocale)
+            advisories = _advisoryRepo.GetLatest(metric, tier, FallbackLocale);
+
+        return advisories;
     }
 }
