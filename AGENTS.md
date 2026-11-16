@@ -55,4 +55,4 @@ ClimaPulse is a Windows desktop app (Windows Forms) that compares live weather a
 
 ## PRs
 
-Use `docs/pull_request_template.md`. State that AI helped and which tool.
+Use `docs/pull_request_template.md`. Do not mention AI tools as authors or contributors in commits or PR text.

@@ -12,4 +12,4 @@ Read `AGENTS.md` in the repository root first. Full rules: `docs/github-ai-agent
 - Keep `ClimaPulse.*` namespaces. Forms and user controls take only `ClimaPulse.Contracts` interfaces (constructor parameters), never backend classes. Only `WeatherService` calls Open-Meteo.
 - Read `docs/api-contract.md` before changing a service, DTO, form or user control.
 - Run `dotnet build` and `dotnet test` when they exist and report real results. Do not invent results, links or package names.
-- Mention in the PR that AI helped.
+- Do not list AI tools as author, co-author or contributor in commits or PRs.
