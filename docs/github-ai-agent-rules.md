@@ -10,7 +10,7 @@ Everyone on the ClimaPulse team may use AI tools (Claude Code, GitHub Copilot, C
 
 ## 1. The four rules that matter most
 
-1. **You own what the agent writes.** The person who prompts the agent is the author of the change and must be able to explain every line in the review.
+1. **You own what the agent writes.** The person who prompts the agent is the sole author, committer and owner of the change, and must be able to explain every line in the review. The agent is a tool, never a co-author or contributor.
 2. **Agents work on feature branches only.** Never on `main`, never on another member's branch.
 3. **A human merges, after another human reviews.** An agent never merges, approves, or force-pushes.
 4. **No secrets in prompts or in git.** Not in a chat window, not in a commit, not in a screenshot.
@@ -31,7 +31,7 @@ The rest of this file explains each rule and the small procedures behind it.
 
 Branch names use `type/short-description` with types `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
 
-Commit messages follow Conventional Commits, for example `feat(watchlist): implement IWatchlistService.AddAsync`. Commits are authored by the team member who made them. Do not add AI tools as author, committer or `Co-Authored-By` trailer.
+Commit messages follow Conventional Commits, for example `feat(watchlist): implement IWatchlistService.AddAsync`. Every commit is the solo work of the team member who made it: they are the only author and committer. Never add an AI tool as author, committer, `Co-Authored-By` trailer or contributor, in commits or in PR text.
 
 **Pros of this setup:** a bad agent run only damages one branch, history stays readable, and a rollback is one revert. **Cons:** more branches to manage, and small merge conflicts when the monorepo's shared files (`README.md`, `frontend/Program.cs`, the Contracts project) are edited by several people. Keep those edits in tiny PRs and merge them first.
 

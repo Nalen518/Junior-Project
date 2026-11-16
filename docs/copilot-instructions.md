@@ -10,6 +10,6 @@ Hard rules in short:
 - Keep `ClimaPulse.*` namespaces. Forms and user controls take only `ClimaPulse.Contracts` interfaces (constructor parameters), never backend classes. Only `WeatherService` calls Open-Meteo.
 - Read `docs/api-contract.md` before changing a service, DTO, form or user control.
 - Run `dotnet build` and `dotnet test` when they exist, and report real results. Do not invent results, links or package names.
-- Do not list AI tools as author, co-author or contributor in commits or PRs.
+- The team member who commits is the sole author, committer and owner. Never list Copilot or any AI tool as author, co-author or contributor in commits or PRs.
 
 Stack: Windows desktop app. Windows Forms in `frontend/` (no Blazor, no WPF), services and repositories in `backend/`, contract in `shared/ClimaPulse.Contracts`, PostgreSQL (Npgsql), .NET 10.
