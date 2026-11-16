@@ -42,14 +42,14 @@ flowchart TB
     D["frontend: ClimaPulse.Desktop<br/>WPF window + BlazorWebView + .razor UI"] -->|injects interfaces| C["shared: ClimaPulse.Contracts<br/>interfaces, DTOs, enums, exceptions"]
     B["backend: ClimaPulse.Backend<br/>services, repositories, WeatherService"] -->|implements| C
     D -.->|composition root only<br/>MainWindow.xaml.cs| B
-    B --> DB[(SQLite climapulse.db)]
+    B --> DB[(PostgreSQL database climapulse)]
     B --> OM[Open-Meteo]
 ```
 
 | Project | Target | May reference | Must not reference |
 |---|---|---|---|
 | `shared/ClimaPulse.Contracts` | `net10.0` | nothing | anything |
-| `backend` (ClimaPulse.Backend) | `net10.0` | Contracts, `Microsoft.Data.Sqlite` | Desktop, WPF |
+| `backend` (ClimaPulse.Backend) | `net10.0` | Contracts, `Npgsql` | Desktop, WPF |
 | `frontend` (ClimaPulse.Desktop) | `net10.0-windows10.0.17763.0` | Contracts; Backend **only** in `MainWindow.xaml.cs` to register services | Backend classes inside any `.razor` file |
 
 Contracts and Backend target plain `net10.0`, so their unit tests also run on Mac or Linux. Only the Desktop project needs Windows.
@@ -65,7 +65,7 @@ Contracts and Backend target plain `net10.0`, so their unit tests also run on Ma
 | Enums | The UI uses the C# enums. Strings like `"warning"` appear only in the database and in export files (section 9). |
 | Time | Every `DateTime` is UTC (`DateTimeKind.Utc`). The UI converts to local time for display. |
 | Units | Temperatures are always Celsius in the contract. The UI converts to Fahrenheit when the profile asks (FR-05). |
-| Numbers | `double` for measurements and z-scores, `int` for ids (from SQLite, start at 1). |
+| Numbers | `double` for measurements and z-scores, `int` for ids (PostgreSQL identity columns, start at 1). |
 | Null | Only fields marked `?` can be null. Nullable reference types are on, so the compiler warns. |
 | Lists | Methods return `IReadOnlyList<T>`. Empty means `[]`, never `null`, and never an exception. |
 | Async | Every method is `async` and takes an optional `CancellationToken`, so a slow Open-Meteo call can be cancelled when the user leaves the page. |
@@ -472,7 +472,7 @@ The decimal rule matters: Indonesian Windows uses a comma for decimals, so `29.1
 |---|---|---|
 | 1. The compiler | Both sides use the same interfaces and records. A rename, removed field or changed type breaks the build on the side that was not updated. | Free once Contracts exists |
 | 2. Fakes for the UI | `frontend/Fakes/FakeDashboardService.cs` and friends return fixed sample data (Yogyakarta, Jakarta, Tokyo from `seed.sql`). A switch in `MainWindow.xaml.cs` registers fakes or real services. The frontend can build every screen before the backend is done. | Small, one class per interface |
-| 3. Service tests | One xUnit test per interface method in the backend, against a temporary SQLite file. They check the DTO values and the exception types in this file. | Small per method |
+| 3. Service tests | One xUnit test per interface method in the backend, against a separate test PostgreSQL database (for example `climapulse_test`). They check the DTO values and the exception types in this file. | Small per method |
 | 4. Review rule | Any change to `shared/ClimaPulse.Contracts` needs one frontend and one backend approval. | Free |
 
 Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are the reason two people can work in parallel without waiting for each other.

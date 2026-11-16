@@ -17,7 +17,7 @@ This file explains how ClimaPulse is built as a desktop app, how to set up the p
 | Frontend to backend | In-process C# interfaces in `shared/ClimaPulse.Contracts`. No HTTP API | Radit, 2026-10-22 |
 | Users | No login. Profile picker on start | Radit, 2026-10-22 |
 | Framework | .NET 10 LTS | Radit, 2026-10-16 |
-| Database | SQLite through `Microsoft.Data.Sqlite`, existing ADO.NET repositories | Modul 4 |
+| Database | PostgreSQL through `Npgsql`, existing ADO.NET repositories | Modul 4 |
 | Repo layout | Monorepo: `frontend/`, `backend/`, `shared/` | Radit |
 | Weather data | Open-Meteo forecast and archive APIs | PRD |
 | Team machines | Everyone develops on Windows | Radit, 2026-10-22 |
@@ -67,7 +67,7 @@ flowchart TB
     R -->|inject interfaces| I
     SV -.implements.-> I
     CR -.registers.-> SV
-    RP --> DB[(SQLite<br/>%LOCALAPPDATA%\ClimaPulse\climapulse.db)]
+    RP --> DB[(PostgreSQL<br/>database climapulse)]
     WS --> OM[Open-Meteo]
 ```
 
@@ -97,7 +97,7 @@ dotnet sln add shared/ClimaPulse.Contracts backend frontend tests/ClimaPulse.Bac
 dotnet add backend  reference shared/ClimaPulse.Contracts
 dotnet add frontend reference shared/ClimaPulse.Contracts backend
 dotnet add tests/ClimaPulse.Backend.Tests reference backend
-dotnet add backend  package Microsoft.Data.Sqlite
+dotnet add backend  package Npgsql
 dotnet add frontend package Microsoft.AspNetCore.Components.WebView.Wpf
 ```
 
@@ -210,14 +210,14 @@ Why each piece exists:
 
 ### Step 5: Database location and configuration
 
-- Set the database path to `%LOCALAPPDATA%\ClimaPulse\climapulse.db` (create the folder on start). `DatabaseConfig` currently defaults to `climapulse.db` in the working folder, which may not be writable once the app is installed. `CLIMAPULSE_DB_PATH` still overrides it.
+- Install PostgreSQL on the PC and create the database once with `createdb climapulse`. `DatabaseConfig` reads the connection string from `CLIMAPULSE_DB_CONNECTION` and falls back to `Host=localhost;Port=5432;Database=climapulse;Username=postgres`. `DatabaseInitializer` creates the tables on first start.
 - .NET does not read `.env` files. `backend/.env.example` only documents the variable names. Open-Meteo needs no key, so there is nothing secret.
 - Settings that are not in the database (last profile, theme) go in `%LOCALAPPDATA%\ClimaPulse\settings.json` (contract decision C3).
 
 ### Step 6: Test
 
 - Unit tests (xUnit): `AnomalyDetectionService`, strategies, z-score and tier rules. No database, no network.
-- Service tests: each interface method against a temporary SQLite file, checking DTO values and exception types.
+- Service tests: each interface method against a separate test PostgreSQL database, checking DTO values and exception types.
 - Manual demo path: pick profile, add city, refresh, see badge, open city detail, open ledger, export CSV. Run it on the demo laptop, not only on the developer's PC.
 - Debugging the UI: `AddBlazorWebViewDeveloperTools` in Debug builds lets you open the browser developer tools inside the app (Ctrl+Shift+I) to inspect HTML and CSS.
 
@@ -253,8 +253,8 @@ Zip the `publish/ClimaPulse` folder and attach it to a GitHub Release. Module 1 
 
 | Topic | Link | Status |
 |---|---|---|
-| Microsoft.Data.Sqlite overview | https://learn.microsoft.com/dotnet/standard/data/sqlite/ | Check |
-| Microsoft.Data.Sqlite on NuGet | https://www.nuget.org/packages/Microsoft.Data.Sqlite | Check |
+| Npgsql documentation | https://www.npgsql.org/doc/ | Check |
+| Npgsql on NuGet | https://www.nuget.org/packages/Npgsql | Check |
 
 ### Weather data
 
@@ -288,8 +288,8 @@ Charts in a Blazor Hybrid app work the same way as on the web: a pure Blazor cha
 5. **Duplicate ledger rows.** Open one `AnomalyEvent` when a reading crosses the threshold, keep it `active`, close it when readings return below the closing threshold (hysteresis, SRD OPEN-1).
 6. **Snapshots.** Copy the baseline mean and standard deviation into the event when it opens. Never join back to `Baseline` to show an old event.
 7. **Zero standard deviation.** `stddev_value` may be 0. Return `DataStatus.ZeroVariance` instead of dividing.
-8. **SQLite single writer.** Do not run a baseline refresh and a live refresh for the same city at the same time. The contract makes the second call throw `ConflictException`.
-9. **Database file location.** A program installed in a protected folder cannot write next to its `.exe`. Use `%LOCALAPPDATA%`.
+8. **Overlapping refreshes.** Do not run a baseline refresh and a live refresh for the same city at the same time. The contract makes the second call throw `ConflictException`.
+9. **Database server.** The app needs a running PostgreSQL server. Check it is installed and started on the demo laptop, and show a clear error when the connection fails.
 10. **`wwwroot` not copied.** If the window shows a blank page, check that `wwwroot/index.html` is in the build output and that `HostPage` matches its path.
 
 ---

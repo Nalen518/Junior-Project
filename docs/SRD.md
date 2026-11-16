@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Version | 0.2 draft |
+| Version | 0.3 draft |
 | Date | 2026-10-22 |
 | Project | ClimaPulse, Junior Project, group "Mendoan", UGM DTETI |
 | Status | For team review. Items marked **OPEN** need a team decision. |
@@ -69,7 +69,7 @@ flowchart LR
     F -->|C# interfaces in ClimaPulse.Contracts| A[Backend services]
     A --> E[Anomaly engine and strategies]
     E --> R[Repositories]
-    R --> D[(SQLite)]
+    R --> D[(PostgreSQL)]
     E --> W[WeatherService]
     W --> O[Open-Meteo]
 ```
@@ -83,10 +83,10 @@ flowchart LR
 | Maintainer | A team member. | Seed advisories, refresh baselines, inspect health of the system. |
 
 ### 2.3 Operating environment
-Windows 10 (version 1809, build 17763) or later, or Windows 11, 64-bit. The Microsoft Edge WebView2 Runtime must be present (it is part of current Windows installs; check the demo laptop). .NET 10. A SQLite file on the user's PC. Internet access to Open-Meteo for live data and first-time history downloads.
+Windows 10 (version 1809, build 17763) or later, or Windows 11, 64-bit. The Microsoft Edge WebView2 Runtime must be present (it is part of current Windows installs; check the demo laptop). .NET 10. A PostgreSQL server on the user's PC with a `climapulse` database. Internet access to Open-Meteo for live data and first-time history downloads.
 
 ### 2.4 Constraints
-- C-1: C# on .NET 10 LTS. WPF with Blazor Hybrid (`BlazorWebView`) for the desktop UI. SQLite through `Microsoft.Data.Sqlite`. Required by Module 1: C# desktop application.
+- C-1: C# on .NET 10 LTS. WPF with Blazor Hybrid (`BlazorWebView`) for the desktop UI. PostgreSQL through `Npgsql`. Required by Module 1: C# desktop application.
 - C-2: Open-Meteo is the only weather data source. Its free tier is for non-commercial use with request limits (confirm the exact numbers on the terms page).
 - C-3: Layering: Razor components depend only on `ClimaPulse.Contracts` interfaces. The UI never accesses repositories or the database, and only `WeatherService` calls Open-Meteo.
 - C-4: All timestamps are stored in UTC as ISO 8601 text.
@@ -204,7 +204,7 @@ Closing events is done by the system through the refresh flow, so there is no cl
 - Anomalies compare today's daily value (daily mean temperature, daily rain total, daily maximum wind) with baselines built from daily archive values. The exact endpoints, variables, units and limits are in `docs/api-contract.md`, section 14.
 
 ### 4.4 Database
-SQLite, schema in `backend/Database/schema.sql`, created automatically on first start. Foreign keys are enforced on every connection. The file lives in `%LOCALAPPDATA%\ClimaPulse\climapulse.db` unless `CLIMAPULSE_DB_PATH` is set, because an installed program folder is often not writable.
+PostgreSQL, schema in `backend/Database/schema.sql`. The database is created once with `createdb climapulse`; the tables are created automatically on first start. PostgreSQL enforces foreign keys by default. The connection string comes from `CLIMAPULSE_DB_CONNECTION` (template in `backend/.env.example`), with a local default of `Host=localhost;Port=5432;Database=climapulse;Username=postgres`.
 
 ---
 
@@ -273,7 +273,7 @@ Retention: observations and baselines are kept as long as the city exists. Ledge
 | Ledger (FR-22 to FR-28) | AnomalyEvent | `IEventLedgerService`, `AnomalyEventRepository` |
 | Users (FR-29) | UserProfile | `IProfileService`, `UserProfileRepository` |
 
-Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` and `AssignTier` are not implemented yet. `WindStrategy` does not exist yet (needed for FR-14). The `ClimaPulse.Contracts` project and the service classes that implement its interfaces do not exist yet. `frontend/Dashboard.razor` still uses `ClimaPulse.Models` entities and must switch to DTOs.
+Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` is not implemented yet. `AssignTier`, `TemperatureStrategy` and `PrecipitationStrategy` are implemented but not yet compiled or unit tested. `WindStrategy` does not exist yet (needed for FR-14). The `ClimaPulse.Contracts` project and the service classes that implement its interfaces do not exist yet. `frontend/Dashboard.razor` still uses `ClimaPulse.Models` entities and must switch to DTOs.
 
 ---
 
@@ -318,3 +318,4 @@ Module 1 says groups have at most three members, but the group has four. Confirm
 | 0.1 | 2026-10-16 | First draft from the existing schema, class diagrams and team decisions |
 | 0.2.1 | 2026-10-22 | Open-Meteo details: geocoding confirmed, daily-value comparison, real free-tier limits (NFR-03) |
 | 0.2 | 2026-10-22 | Platform changed to a WPF desktop app with Blazor Hybrid (Module 1). HTTP API replaced by in-process interfaces. No login, profile picker. Grading criteria added. OPEN-3 and OPEN-4 decided, OPEN-8 added |
+| 0.3 | 2026-11-16 | Database changed from SQLite to PostgreSQL (Npgsql). Connection string from `CLIMAPULSE_DB_CONNECTION` |

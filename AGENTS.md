@@ -9,7 +9,7 @@ ClimaPulse is a Windows desktop app (WPF with Blazor Hybrid) that compares live 
 - Frontend: WPF window with `BlazorWebView`, screens as Razor components, in `frontend/` (Windows only)
 - Backend: services, repositories and `WeatherService` in `backend/` (a class library, no web server)
 - Contract between them: interfaces, DTOs, enums and exceptions in `shared/ClimaPulse.Contracts` (once created). Read `docs/api-contract.md` before touching a service, DTO or component.
-- Database: SQLite, schema in `backend/Database/schema.sql`
+- Database: PostgreSQL through Npgsql, schema in `backend/Database/schema.sql`. Connection string from `CLIMAPULSE_DB_CONNECTION` (see `backend/.env.example`).
 - Requirements: `docs/SRD.md`. Architecture and setup: `docs/references-desktop-architecture.md`
 - Class diagrams: `docs/class-diagram/`
 

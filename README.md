@@ -21,10 +21,10 @@ ClimaPulse is a Windows desktop app: a WPF window whose screens are Blazor compo
 |-- frontend/    ClimaPulse.Desktop: WPF window + BlazorWebView, Razor screens (Windows only)
 |   |-- Components/     Dashboard.razor (more screens to come)
 |   `-- State/          DashboardState.cs (UI state shared by screens)
-|-- backend/     ClimaPulse.Backend: services, repositories, WeatherService, SQLite
+|-- backend/     ClimaPulse.Backend: services, repositories, WeatherService, PostgreSQL
 |   |-- Database/       schema.sql, seed.sql, schema.dbml
 |   |-- Enums/  Models/  Repositories/  Services/  Strategies/
-|   `-- .env.example    CLIMAPULSE_DB_PATH and Open-Meteo URL names
+|   `-- .env.example    CLIMAPULSE_DB_CONNECTION and Open-Meteo URL names
 |-- shared/      ClimaPulse.Contracts: interfaces, DTOs, enums, exceptions (planned)
 `-- docs/        SRD, contract, architecture, design references, class diagrams
 ```
