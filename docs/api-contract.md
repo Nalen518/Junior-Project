@@ -1,16 +1,16 @@
 # ClimaPulse Internal API Contract (v2)
 
-Status: draft for team approval. Last updated 2026-10-22.
+Status: draft for team approval. Last updated 2026-11-16 (UI changed to Windows Forms, database to PostgreSQL).
 
-This document is the agreement between the **frontend** (Razor components in the desktop app) and the **backend** (services, repositories, Open-Meteo access). Both sides build against the same C# interfaces and DTOs in `shared/ClimaPulse.Contracts`. That project **is** the contract. This file explains it and the rules around it. If the two ever disagree, the code in `shared/ClimaPulse.Contracts` wins and this file gets fixed.
+This document is the agreement between the **frontend** (Windows Forms forms and user controls in the desktop app) and the **backend** (services, repositories, Open-Meteo access). Both sides build against the same C# interfaces and DTOs in `shared/ClimaPulse.Contracts`. That project **is** the contract. This file explains it and the rules around it. If the two ever disagree, the code in `shared/ClimaPulse.Contracts` wins and this file gets fixed.
 
-Derived from `docs/SRD.md` (version 0.2) and `backend/Database/schema.sql`.
+Derived from `docs/SRD.md` (version 0.4) and `backend/Database/schema.sql`.
 
 ---
 
 ## 1. What changed from v1 and why
 
-Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Module 1 requires a C# desktop application, so the team chose **WPF with Blazor Hybrid** (`BlazorWebView`) and runs everything **in one process**. The UI calls C# interfaces directly, so there is no HTTP, no JSON between frontend and backend, and no `openapi.yaml`.
+Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Module 1 requires a C# desktop application, so the team runs everything **in one process**. The UI is **Windows Forms** (decided 2026-11-16; Blazor and WPF are not allowed for the UI). The UI calls C# interfaces directly, so there is no HTTP, no JSON between frontend and backend, and no `openapi.yaml`.
 
 | | v1 (HTTP, retired) | v2 (in-process, current) |
 |---|---|---|
@@ -29,9 +29,9 @@ Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Modu
 | You are | Do this |
 |---|---|
 | Backend developer | Implement the interfaces in `backend/`. Return DTOs, never `ClimaPulse.Models` entities. Throw only the exceptions in section 7 on purpose. |
-| Frontend developer | Inject the interfaces into components (`@inject IDashboardService Dashboard`). Never inject a repository, `WeatherService` or any class from `backend/`. Use the fakes until the backend is ready. |
-| Reviewer | If a PR touches `shared/ClimaPulse.Contracts`, it needs one frontend and one backend reviewer (section 11). If a `.razor` file injects anything outside `ClimaPulse.Contracts`, request changes. |
-| AI agent | Read this file before touching a service, DTO or component. Never invent a method, field or exception type. |
+| Frontend developer | Take the interfaces as constructor parameters of forms and user controls (`public DashboardView(IDashboardService dashboard)`). Never inject a repository, `WeatherService` or any class from `backend/`. Use the fakes until the backend is ready. |
+| Reviewer | If a PR touches `shared/ClimaPulse.Contracts`, it needs one frontend and one backend reviewer (section 11). If a form or user control in `frontend/` uses anything outside `ClimaPulse.Contracts`, request changes. |
+| AI agent | Read this file before touching a service, DTO, form or user control. Never invent a method, field or exception type. |
 
 ---
 
@@ -39,9 +39,9 @@ Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Modu
 
 ```mermaid
 flowchart TB
-    D["frontend: ClimaPulse.Desktop<br/>WPF window + BlazorWebView + .razor UI"] -->|injects interfaces| C["shared: ClimaPulse.Contracts<br/>interfaces, DTOs, enums, exceptions"]
+    D["frontend: ClimaPulse.Desktop<br/>Windows Forms: forms + user controls"] -->|injects interfaces| C["shared: ClimaPulse.Contracts<br/>interfaces, DTOs, enums, exceptions"]
     B["backend: ClimaPulse.Backend<br/>services, repositories, WeatherService"] -->|implements| C
-    D -.->|composition root only<br/>MainWindow.xaml.cs| B
+    D -.->|composition root only<br/>Program.cs| B
     B --> DB[(PostgreSQL database climapulse)]
     B --> OM[Open-Meteo]
 ```
@@ -49,8 +49,8 @@ flowchart TB
 | Project | Target | May reference | Must not reference |
 |---|---|---|---|
 | `shared/ClimaPulse.Contracts` | `net10.0` | nothing | anything |
-| `backend` (ClimaPulse.Backend) | `net10.0` | Contracts, `Npgsql` | Desktop, WPF |
-| `frontend` (ClimaPulse.Desktop) | `net10.0-windows10.0.17763.0` | Contracts; Backend **only** in `MainWindow.xaml.cs` to register services | Backend classes inside any `.razor` file |
+| `backend` (ClimaPulse.Backend) | `net10.0` | Contracts, `Npgsql` | Desktop, Windows Forms |
+| `frontend` (ClimaPulse.Desktop) | `net10.0-windows` with `<UseWindowsForms>true</UseWindowsForms>` | Contracts; Backend **only** in `Program.cs` to create services | Backend classes inside any form or user control |
 
 Contracts and Backend target plain `net10.0`, so their unit tests also run on Mac or Linux. Only the Desktop project needs Windows.
 
@@ -420,8 +420,8 @@ public sealed class UpstreamException(string message, int? cityId = null, Except
 | anything else | Bug or database failure | Generic message. Log the full exception to a file for the developer |
 
 Rules:
-1. The UI catches `ClimaPulseException` around every service call. One shared helper or component does this, so pages do not repeat the code.
-2. Wrap each page in Blazor's `<ErrorBoundary>` so an unexpected bug does not freeze the whole window during the demo.
+1. The UI catches `ClimaPulseException` around every service call. One shared helper does this, so screens do not repeat the code.
+2. `Program.cs` sets `Application.ThreadException` and `AppDomain.CurrentDomain.UnhandledException` handlers that log the error and show a message, so an unexpected bug does not close the app during the demo.
 3. One city failing must not block the others. The UI refreshes cities one call each.
 4. Messages never contain SQL, stack traces or file paths.
 
@@ -451,7 +451,7 @@ Rules:
 3. **Update requests replace everything.** Send every field. `Notes = null` clears the note.
 4. **Removing a watched city keeps its events** in the ledger.
 5. **`Normal` is never stored.** Events and advisories only have Watch, Warning or Extreme.
-6. **Threading:** components run on the UI thread. Services must not block it. Database work that can take more than a moment runs inside `Task.Run` in the backend, so the window stays responsive.
+6. **Threading:** forms run on the UI thread. Event handlers are `async void` and `await` the service; never `.Result` or `.Wait()`. Services must not block it. Database work that can take more than a moment runs inside `Task.Run` in the backend, so the window stays responsive.
 7. **Export file format** (the only place text formats matter):
 
 | Item | Format |
@@ -471,7 +471,7 @@ The decimal rule matters: Indonesian Windows uses a comma for decimals, so `29.1
 | Layer | What | Effort |
 |---|---|---|
 | 1. The compiler | Both sides use the same interfaces and records. A rename, removed field or changed type breaks the build on the side that was not updated. | Free once Contracts exists |
-| 2. Fakes for the UI | `frontend/Fakes/FakeDashboardService.cs` and friends return fixed sample data (Yogyakarta, Jakarta, Tokyo from `seed.sql`). A switch in `MainWindow.xaml.cs` registers fakes or real services. The frontend can build every screen before the backend is done. | Small, one class per interface |
+| 2. Fakes for the UI | `frontend/Fakes/FakeDashboardService.cs` and friends return fixed sample data (Yogyakarta, Jakarta, Tokyo from `seed.sql`). A switch in `Program.cs` creates fakes or real services. The frontend can build every screen before the backend is done. | Small, one class per interface |
 | 3. Service tests | One xUnit test per interface method in the backend, against a separate test PostgreSQL database (for example `climapulse_test`). They check the DTO values and the exception types in this file. | Small per method |
 | 4. Review rule | Any change to `shared/ClimaPulse.Contracts` needs one frontend and one backend approval. | Free |
 
@@ -503,7 +503,7 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 
 - [ ] The whole solution builds with no warnings on the merger's machine.
 - [ ] `dotnet test` passes.
-- [ ] No `.razor` file injects anything outside `ClimaPulse.Contracts`.
+- [ ] No form or user control in `frontend/` uses anything outside `ClimaPulse.Contracts`.
 - [ ] No service returns a `ClimaPulse.Models` entity.
 - [ ] The app starts with real services (fakes switched off) and the demo path works: pick profile, add city, refresh, see badge, open ledger, export CSV.
 - [ ] The UI handles every exception type in section 7 and every `DataStatus` in section 6.4.
