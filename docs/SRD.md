@@ -255,7 +255,7 @@ Targets are starting points. The team should confirm them after measuring.
 | Watchlist | Links a profile to a city (many to many) | Unique per profile and city. Threshold above 0, default 2.0. Deleted with the profile or the city. |
 | HistoricalObservation | Stored readings | Unique per city, metric and time. Deleted with the city. |
 | Baseline | Mean and standard deviation per city, metric, month | Unique per city, metric and month. Standard deviation 0 or more. Month 1 to 12. |
-| Advisory | Health or climate message | Unique per metric, tier, locale and version. Tier is watch, warning or extreme. Body up to 2000 chars. |
+| Advisory | Health or climate message | Unique per metric, tier, locale, category and version. Tier is watch, warning or extreme. Body up to 2000 chars. |
 | AnomalyEvent | The ledger | Cannot be removed together with its city or baseline (restrict). Keeps baseline snapshots. Advisory link is optional. |
 
 Retention: observations and baselines are kept as long as the city exists. Ledger events are kept permanently. Deleting a city that has ledger events is blocked by the database on purpose.
@@ -323,3 +323,4 @@ Module 1 says groups have at most three members, but the group has four. Confirm
 | 0.2 | 2026-10-22 | Platform changed to a WPF desktop app with Blazor Hybrid (Module 1). HTTP API replaced by in-process interfaces. No login, profile picker. Grading criteria added. OPEN-3 and OPEN-4 decided, OPEN-8 added |
 | 0.3 | 2026-11-16 | Database changed from SQLite to PostgreSQL (Npgsql). Connection string from `CLIMAPULSE_DB_CONNECTION` |
 | 0.4 | 2026-11-16 | UI changed from WPF with Blazor Hybrid to Windows Forms (Blazor and WPF not allowed). WebView2 requirement removed. OPEN-9 (charts) added |
+| 0.4.1 | 2026-11-16 | Advisory uniqueness now includes category, so health and climate advisories can share a version number |

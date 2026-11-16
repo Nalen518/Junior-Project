@@ -88,7 +88,7 @@ Table Advisory {
   effective_from text    [not null]
 
   Indexes {
-    (metric_type, severity_tier, locale, version) [unique]
+    (metric_type, severity_tier, locale, category, version) [unique]
   }
 }
 
