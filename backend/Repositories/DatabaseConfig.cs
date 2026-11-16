@@ -1,16 +1,16 @@
 namespace ClimaPulse.Repositories;
 
 /// <summary>
-/// Where the SQLite database lives. Reads CLIMAPULSE_DB_PATH from the environment
-/// and falls back to climapulse.db. Note that .NET does not load .env files by
-/// itself, so set the variable in the launch profile or load .env with a library.
+/// Where the PostgreSQL database lives. Reads CLIMAPULSE_DB_CONNECTION from the
+/// environment and falls back to a local server. Note that .NET does not load .env
+/// files by itself, so set the variable in the launch profile or load .env with a library.
 /// </summary>
 public static class DatabaseConfig
 {
-    public const string DefaultDbPath = "climapulse.db";
+    /// <summary>Local default without a password; put the real password in your own .env.</summary>
+    public const string DefaultConnectionString =
+        "Host=localhost;Port=5432;Database=climapulse;Username=postgres";
 
-    public static string DbPath =>
-        Environment.GetEnvironmentVariable("CLIMAPULSE_DB_PATH") ?? DefaultDbPath;
-
-    public static string ConnectionString => $"Data Source={DbPath}";
+    public static string ConnectionString =>
+        Environment.GetEnvironmentVariable("CLIMAPULSE_DB_CONNECTION") ?? DefaultConnectionString;
 }

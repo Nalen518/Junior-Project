@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ClimaPulse.Enums;
 using ClimaPulse.Models;
-using Microsoft.Data.Sqlite;
+using Npgsql;
 
 namespace ClimaPulse.Repositories;
 
@@ -12,7 +12,7 @@ namespace ClimaPulse.Repositories;
 /// AnomalyLogRepository. An active event must have no ended_at, and a closed event
 /// must end at or after it started; the schema rejects anything else.
 /// </summary>
-public class AnomalyEventRepository : SqliteRepositoryBase, IRepository<AnomalyEvent>
+public class AnomalyEventRepository : PostgresRepositoryBase, IRepository<AnomalyEvent>
 {
     private const string Columns =
         "event_id, city_id, baseline_id, advisory_id, metric_type, severity_tier, started_at, ended_at, " +
@@ -35,30 +35,30 @@ public class AnomalyEventRepository : SqliteRepositoryBase, IRepository<AnomalyE
             @"INSERT INTO AnomalyEvent (city_id, baseline_id, advisory_id, metric_type, severity_tier, started_at,
                                         ended_at, peak_at, peak_observed_value, peak_zscore,
                                         baseline_mean_snapshot, baseline_stddev_snapshot, status, created_at)
-              VALUES ($city, $baseline, $advisory, $metric, $tier, $started,
-                      $ended, $peakAt, $peakValue, $peakZ,
-                      $mean, $std, $status, $created)",
+              VALUES (@city, @baseline, @advisory, @metric, @tier, @started,
+                      @ended, @peakAt, @peakValue, @peakZ,
+                      @mean, @std, @status, @created)",
             cmd =>
             {
-                AddParam(cmd, "$city", item.CityId);
-                AddParam(cmd, "$baseline", item.BaselineId);
-                AddParam(cmd, "$advisory", item.AdvisoryId);
-                AddParam(cmd, "$metric", item.MetricType.ToDb());
-                AddParam(cmd, "$tier", item.SeverityTier.ToDb());
-                AddParam(cmd, "$started", item.StartedAt.ToDb());
-                AddParam(cmd, "$ended", item.EndedAt?.ToDb());
-                AddParam(cmd, "$peakAt", item.PeakAt.ToDb());
-                AddParam(cmd, "$peakValue", item.PeakObservedValue);
-                AddParam(cmd, "$peakZ", item.PeakZScore);
-                AddParam(cmd, "$mean", item.BaselineMeanSnapshot);
-                AddParam(cmd, "$std", item.BaselineStdDevSnapshot);
-                AddParam(cmd, "$status", item.Status.ToDb());
-                AddParam(cmd, "$created", item.CreatedAt.ToDb());
+                AddParam(cmd, "@city", item.CityId);
+                AddParam(cmd, "@baseline", item.BaselineId);
+                AddParam(cmd, "@advisory", item.AdvisoryId);
+                AddParam(cmd, "@metric", item.MetricType.ToDb());
+                AddParam(cmd, "@tier", item.SeverityTier.ToDb());
+                AddParam(cmd, "@started", item.StartedAt.ToDb());
+                AddParam(cmd, "@ended", item.EndedAt?.ToDb());
+                AddParam(cmd, "@peakAt", item.PeakAt.ToDb());
+                AddParam(cmd, "@peakValue", item.PeakObservedValue);
+                AddParam(cmd, "@peakZ", item.PeakZScore);
+                AddParam(cmd, "@mean", item.BaselineMeanSnapshot);
+                AddParam(cmd, "@std", item.BaselineStdDevSnapshot);
+                AddParam(cmd, "@status", item.Status.ToDb());
+                AddParam(cmd, "@created", item.CreatedAt.ToDb());
             });
     }
 
     public void Remove(AnomalyEvent item) =>
-        ExecuteNonQuery("DELETE FROM AnomalyEvent WHERE event_id = $id", cmd => AddParam(cmd, "$id", item.Id));
+        ExecuteNonQuery("DELETE FROM AnomalyEvent WHERE event_id = @id", cmd => AddParam(cmd, "@id", item.Id));
 
     public List<AnomalyEvent> GetAll() =>
         ReadList($"SELECT {Columns} FROM AnomalyEvent ORDER BY started_at DESC", Map);
@@ -73,14 +73,14 @@ public class AnomalyEventRepository : SqliteRepositoryBase, IRepository<AnomalyE
     public AnomalyEvent? GetOpenEvent(int cityId, MetricType metric) =>
         ReadList(
             $@"SELECT {Columns} FROM AnomalyEvent
-               WHERE city_id = $city AND metric_type = $metric AND status = 'active'
+               WHERE city_id = @city AND metric_type = @metric AND status = 'active'
                ORDER BY started_at DESC
                LIMIT 1",
             Map,
             cmd =>
             {
-                AddParam(cmd, "$city", cityId);
-                AddParam(cmd, "$metric", metric.ToDb());
+                AddParam(cmd, "@city", cityId);
+                AddParam(cmd, "@metric", metric.ToDb());
             }).FirstOrDefault();
 
     /// <summary>
@@ -89,11 +89,11 @@ public class AnomalyEventRepository : SqliteRepositoryBase, IRepository<AnomalyE
     /// </summary>
     public bool Close(int eventId, DateTime endedAtUtc) =>
         ExecuteNonQuery(
-            "UPDATE AnomalyEvent SET status = 'closed', ended_at = $ended WHERE event_id = $id AND status = 'active'",
+            "UPDATE AnomalyEvent SET status = 'closed', ended_at = @ended WHERE event_id = @id AND status = 'active'",
             cmd =>
             {
-                AddParam(cmd, "$id", eventId);
-                AddParam(cmd, "$ended", endedAtUtc.ToDb());
+                AddParam(cmd, "@id", eventId);
+                AddParam(cmd, "@ended", endedAtUtc.ToDb());
             }) > 0;
 
     /// <summary>Writes every event to a CSV file, newest first.</summary>
@@ -132,7 +132,7 @@ public class AnomalyEventRepository : SqliteRepositoryBase, IRepository<AnomalyE
     public void ExportJson(string filePath) =>
         File.WriteAllText(filePath, JsonSerializer.Serialize(GetAll(), JsonOptions));
 
-    private static AnomalyEvent Map(SqliteDataReader r) => new()
+    private static AnomalyEvent Map(NpgsqlDataReader r) => new()
     {
         Id = r.GetInt32(0),
         CityId = r.GetInt32(1),

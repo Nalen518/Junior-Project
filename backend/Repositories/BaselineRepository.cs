@@ -1,15 +1,15 @@
 using ClimaPulse.Enums;
 using ClimaPulse.Models;
-using Microsoft.Data.Sqlite;
+using Npgsql;
 
 namespace ClimaPulse.Repositories;
 
 /// <summary>
-/// Reads and writes the Baseline table. Remove throws SqliteException while anomaly
+/// Reads and writes the Baseline table. Remove throws PostgresException while anomaly
 /// events still point at the baseline. To refresh a baseline, call Upsert instead of
 /// deleting and re-adding, so existing events keep their reference.
 /// </summary>
-public class BaselineRepository : SqliteRepositoryBase, IRepository<Baseline>
+public class BaselineRepository : PostgresRepositoryBase, IRepository<Baseline>
 {
     private const string Columns =
         "baseline_id, city_id, metric_type, month, mean_value, stddev_value, sample_size, baseline_start_year, baseline_end_year, computed_at";
@@ -23,12 +23,12 @@ public class BaselineRepository : SqliteRepositoryBase, IRepository<Baseline>
         item.Id = InsertAndGetId(
             @"INSERT INTO Baseline (city_id, metric_type, month, mean_value, stddev_value, sample_size,
                                     baseline_start_year, baseline_end_year, computed_at)
-              VALUES ($city, $metric, $month, $mean, $std, $n, $startYear, $endYear, $computed)",
+              VALUES (@city, @metric, @month, @mean, @std, @n, @startYear, @endYear, @computed)",
             cmd => BindAll(cmd, item));
     }
 
     public void Remove(Baseline item) =>
-        ExecuteNonQuery("DELETE FROM Baseline WHERE baseline_id = $id", cmd => AddParam(cmd, "$id", item.Id));
+        ExecuteNonQuery("DELETE FROM Baseline WHERE baseline_id = @id", cmd => AddParam(cmd, "@id", item.Id));
 
     public List<Baseline> GetAll() =>
         ReadList($"SELECT {Columns} FROM Baseline ORDER BY city_id, metric_type, month", Map);
@@ -39,13 +39,13 @@ public class BaselineRepository : SqliteRepositoryBase, IRepository<Baseline>
     /// <summary>The baseline for one city, metric and calendar month, or null if none exists.</summary>
     public Baseline? GetByCityMetricMonth(int cityId, MetricType metric, int month) =>
         ReadList(
-            $"SELECT {Columns} FROM Baseline WHERE city_id = $city AND metric_type = $metric AND month = $month",
+            $"SELECT {Columns} FROM Baseline WHERE city_id = @city AND metric_type = @metric AND month = @month",
             Map,
             cmd =>
             {
-                AddParam(cmd, "$city", cityId);
-                AddParam(cmd, "$metric", metric.ToDb());
-                AddParam(cmd, "$month", month);
+                AddParam(cmd, "@city", cityId);
+                AddParam(cmd, "@metric", metric.ToDb());
+                AddParam(cmd, "@month", month);
             }).FirstOrDefault();
 
     /// <summary>
@@ -62,7 +62,7 @@ public class BaselineRepository : SqliteRepositoryBase, IRepository<Baseline>
             upsert.CommandText =
                 @"INSERT INTO Baseline (city_id, metric_type, month, mean_value, stddev_value, sample_size,
                                         baseline_start_year, baseline_end_year, computed_at)
-                  VALUES ($city, $metric, $month, $mean, $std, $n, $startYear, $endYear, $computed)
+                  VALUES (@city, @metric, @month, @mean, @std, @n, @startYear, @endYear, @computed)
                   ON CONFLICT (city_id, metric_type, month) DO UPDATE SET
                       mean_value          = excluded.mean_value,
                       stddev_value        = excluded.stddev_value,
@@ -74,30 +74,30 @@ public class BaselineRepository : SqliteRepositoryBase, IRepository<Baseline>
             upsert.ExecuteNonQuery();
         }
 
-        // last_insert_rowid() is not reliable after an update, so look the id up by key.
+        // An upsert may update instead of insert, so look the id up by its unique key.
         using var lookup = connection.CreateCommand();
         lookup.CommandText =
-            "SELECT baseline_id FROM Baseline WHERE city_id = $city AND metric_type = $metric AND month = $month";
-        AddParam(lookup, "$city", item.CityId);
-        AddParam(lookup, "$metric", item.MetricType.ToDb());
-        AddParam(lookup, "$month", item.Month);
+            "SELECT baseline_id FROM Baseline WHERE city_id = @city AND metric_type = @metric AND month = @month";
+        AddParam(lookup, "@city", item.CityId);
+        AddParam(lookup, "@metric", item.MetricType.ToDb());
+        AddParam(lookup, "@month", item.Month);
         item.Id = Convert.ToInt32(lookup.ExecuteScalar());
     }
 
-    private static void BindAll(SqliteCommand cmd, Baseline item)
+    private static void BindAll(NpgsqlCommand cmd, Baseline item)
     {
-        AddParam(cmd, "$city", item.CityId);
-        AddParam(cmd, "$metric", item.MetricType.ToDb());
-        AddParam(cmd, "$month", item.Month);
-        AddParam(cmd, "$mean", item.MeanValue);
-        AddParam(cmd, "$std", item.StdDevValue);
-        AddParam(cmd, "$n", item.SampleSize);
-        AddParam(cmd, "$startYear", item.BaselineStartYear);
-        AddParam(cmd, "$endYear", item.BaselineEndYear);
-        AddParam(cmd, "$computed", item.ComputedAt.ToDb());
+        AddParam(cmd, "@city", item.CityId);
+        AddParam(cmd, "@metric", item.MetricType.ToDb());
+        AddParam(cmd, "@month", item.Month);
+        AddParam(cmd, "@mean", item.MeanValue);
+        AddParam(cmd, "@std", item.StdDevValue);
+        AddParam(cmd, "@n", item.SampleSize);
+        AddParam(cmd, "@startYear", item.BaselineStartYear);
+        AddParam(cmd, "@endYear", item.BaselineEndYear);
+        AddParam(cmd, "@computed", item.ComputedAt.ToDb());
     }
 
-    private static Baseline Map(SqliteDataReader r) => new()
+    private static Baseline Map(NpgsqlDataReader r) => new()
     {
         Id = r.GetInt32(0),
         CityId = r.GetInt32(1),

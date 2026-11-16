@@ -1,6 +1,6 @@
 using ClimaPulse.Enums;
 using ClimaPulse.Models;
-using Microsoft.Data.Sqlite;
+using Npgsql;
 
 namespace ClimaPulse.Repositories;
 
@@ -9,7 +9,7 @@ namespace ClimaPulse.Repositories;
 /// higher Version instead of editing, so old anomaly events keep the text they were shown.
 /// Remove clears advisory_id on events that used it (ON DELETE SET NULL).
 /// </summary>
-public class AdvisoryRepository : SqliteRepositoryBase, IRepository<Advisory>
+public class AdvisoryRepository : PostgresRepositoryBase, IRepository<Advisory>
 {
     private const string Columns =
         "advisory_id, metric_type, severity_tier, locale, category, title, body, version, effective_from";
@@ -22,22 +22,22 @@ public class AdvisoryRepository : SqliteRepositoryBase, IRepository<Advisory>
     {
         item.Id = InsertAndGetId(
             @"INSERT INTO Advisory (metric_type, severity_tier, locale, category, title, body, version, effective_from)
-              VALUES ($metric, $tier, $locale, $category, $title, $body, $version, $effective)",
+              VALUES (@metric, @tier, @locale, @category, @title, @body, @version, @effective)",
             cmd =>
             {
-                AddParam(cmd, "$metric", item.MetricType.ToDb());
-                AddParam(cmd, "$tier", item.SeverityTier.ToDb());
-                AddParam(cmd, "$locale", item.Locale);
-                AddParam(cmd, "$category", item.Category.ToDb());
-                AddParam(cmd, "$title", item.Title);
-                AddParam(cmd, "$body", item.Body);
-                AddParam(cmd, "$version", item.Version);
-                AddParam(cmd, "$effective", item.EffectiveFrom.ToDb());
+                AddParam(cmd, "@metric", item.MetricType.ToDb());
+                AddParam(cmd, "@tier", item.SeverityTier.ToDb());
+                AddParam(cmd, "@locale", item.Locale);
+                AddParam(cmd, "@category", item.Category.ToDb());
+                AddParam(cmd, "@title", item.Title);
+                AddParam(cmd, "@body", item.Body);
+                AddParam(cmd, "@version", item.Version);
+                AddParam(cmd, "@effective", item.EffectiveFrom.ToDb());
             });
     }
 
     public void Remove(Advisory item) =>
-        ExecuteNonQuery("DELETE FROM Advisory WHERE advisory_id = $id", cmd => AddParam(cmd, "$id", item.Id));
+        ExecuteNonQuery("DELETE FROM Advisory WHERE advisory_id = @id", cmd => AddParam(cmd, "@id", item.Id));
 
     public List<Advisory> GetAll() =>
         ReadList($"SELECT {Columns} FROM Advisory ORDER BY metric_type, severity_tier, locale, version", Map);
@@ -52,20 +52,20 @@ public class AdvisoryRepository : SqliteRepositoryBase, IRepository<Advisory>
     public Advisory? GetLatest(MetricType metric, SeverityTier tier, string locale) =>
         ReadList(
             $@"SELECT {Columns} FROM Advisory
-               WHERE metric_type = $metric AND severity_tier = $tier AND locale = $locale
-                 AND effective_from <= $now
+               WHERE metric_type = @metric AND severity_tier = @tier AND locale = @locale
+                 AND effective_from <= @now
                ORDER BY version DESC
                LIMIT 1",
             Map,
             cmd =>
             {
-                AddParam(cmd, "$metric", metric.ToDb());
-                AddParam(cmd, "$tier", tier.ToDb());
-                AddParam(cmd, "$locale", locale);
-                AddParam(cmd, "$now", DateTime.UtcNow.ToDb());
+                AddParam(cmd, "@metric", metric.ToDb());
+                AddParam(cmd, "@tier", tier.ToDb());
+                AddParam(cmd, "@locale", locale);
+                AddParam(cmd, "@now", DateTime.UtcNow.ToDb());
             }).FirstOrDefault();
 
-    private static Advisory Map(SqliteDataReader r) => new()
+    private static Advisory Map(NpgsqlDataReader r) => new()
     {
         Id = r.GetInt32(0),
         MetricType = r.GetString(1).ToMetricType(),
