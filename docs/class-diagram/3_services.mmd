@@ -2,13 +2,13 @@ classDiagram
 direction TB
   class IAnomalyStrategy {
     <<interface>>
-    +Evaluate(double observed, double baseline) AnomalyResult
+    +Evaluate(double observed, Baseline baseline) AnomalyResult
   }
   class TemperatureStrategy {
-    +Evaluate(double observed, double baseline) AnomalyResult
+    +Evaluate(double observed, Baseline baseline) AnomalyResult
   }
   class PrecipitationStrategy {
-    +Evaluate(double observed, double baseline) AnomalyResult
+    +Evaluate(double observed, Baseline baseline) AnomalyResult
   }
   class WeatherService {
     +FetchLiveAsync(City city) Task
@@ -53,6 +53,7 @@ direction TB
 IAnomalyStrategy <|.. TemperatureStrategy
 IAnomalyStrategy <|.. PrecipitationStrategy
 IAnomalyStrategy ..> AnomalyResult
+IAnomalyStrategy ..> Baseline
 AnomalyDetectionService --> IAnomalyStrategy
 AnomalyDetectionService --> WeatherService
 AnomalyDetectionService --> BaselineRepository
