@@ -1,8 +1,8 @@
 # ClimaPulse: Design References
 
-Status: draft for team review. Last updated 2026-10-22.
+Status: draft for team review. Last updated 2026-11-16 (UI is now Windows Forms).
 
-This file collects design references for the ClimaPulse desktop app (a WPF window whose screens are Blazor components), from the start screen to the screens inside the app, plus the project's GitHub Page. It also proposes a starter color system and page layouts so the team has something concrete to react to. Requirement IDs (FR-xx) point to `docs/SRD.md`.
+This file collects design references for the ClimaPulse desktop app (a Windows Forms app: one main window, screens as user controls), from the start screen to the screens inside the app, plus the project's GitHub Page. It also proposes a starter color system and page layouts so the team has something concrete to react to. Requirement IDs (FR-xx) point to `docs/SRD.md`.
 
 **Link status.** *Verified* means the link appeared in a live web search on 2026-10-17. *Check* means it is a well-known page I could not open from my environment, so open it once before the team relies on it. Nobody on the team should copy a design. Take the idea, then draw your own version.
 
@@ -14,7 +14,7 @@ Pick one direction before anyone opens Figma. Mixed directions make a project lo
 
 | Direction | Looks like | Pros | Cons |
 |---|---|---|---|
-| **A. Data-first and calm** (recommended) | White or dark neutral canvas, big numbers, one accent color, color used only for severity | Matches the product idea (explain how unusual a reading is). Easy to keep accessible. Charts stay readable. Fast to build with MudBlazor. | Can look plain if the GitHub Page has no strong hero. |
+| **A. Data-first and calm** (recommended) | White or dark neutral canvas, big numbers, one accent color, color used only for severity | Matches the product idea (explain how unusual a reading is). Easy to keep accessible. Charts stay readable. Fast to build with standard Windows Forms controls. | Can look plain if the GitHub Page has no strong hero. |
 | **B. Friendly weather app** | Gradients, large weather illustrations, rounded cards | Instantly familiar and attractive in screenshots. | Decoration competes with the risk badges. Gradients make contrast hard to control. Looks like a forecast app, not an anomaly tool. |
 | **C. Operations dashboard** | Dark theme, dense panels, map in the center | Feels serious and powerful. Good for many cities. | Hardest to build. Needs a map. Intimidating for first-time users. |
 
@@ -90,7 +90,7 @@ A desktop app has no landing page. The landing-page ideas below now serve the Gi
 | Reference | Take this idea | Avoid | Link | Status |
 |---|---|---|---|---|
 | Dashboard Design Patterns (IEEE VIS 2022 paper) | A research catalogue of real dashboard layouts, useful to name and justify the layout you pick. | Academic wording, skim the figures. | https://arxiv.org/abs/2205.00757 | Verified |
-| IBM Carbon data visualization | Rules for chart types, titles, legends and tooltips that work in dashboards. | Carbon's own component style, since we use MudBlazor. | https://carbondesignsystem.com/data-visualization/chart-types and https://ibm.com/design/language/data-visualization/overview | Verified |
+| IBM Carbon data visualization | Rules for chart types, titles, legends and tooltips that work in dashboards. | Carbon's own component style, since we build with Windows Forms controls. | https://carbondesignsystem.com/data-visualization/chart-types and https://ibm.com/design/language/data-visualization/overview | Verified |
 | Visa dynamic table pattern | A table pattern from a large design system. Read how it handles sort, filter and layout, then apply it to the ledger. | Its visual style. | https://design.visa.com/patterns/dynamic-table | Verified |
 | Windy / Zoom Earth / earth.nullschool | A full-screen map as a second view of the same data. | Making the map the only view. A list is faster to scan for 10 cities. | https://www.windy.com , https://zoom.earth , https://earth.nullschool.net | Check |
 | Climate Reanalyzer | Plain, fast anomaly maps and daily charts, a good model of "serious but readable". | Its utilitarian styling, which is too bare for the GitHub Page. | https://climatereanalyzer.org/wx/todays-weather | Verified |
@@ -194,12 +194,12 @@ Yellow, orange and red are hard to tell apart for people with red-green color bl
 
 ### 5.3 Typography and spacing
 
-- Typeface: Inter, or the system sans-serif stack. **Pro:** very readable at small sizes and free (Google Fonts). **Con:** very common, so the look comes from layout and color, not the font.
+- Typeface: Segoe UI, the Windows default (`ApplicationConfiguration.Initialize` sets it). **Pro:** installed on every Windows PC, very readable, no font file to ship. **Con:** very common, so the look comes from layout and color, not the font. Inter is possible but must be bundled and loaded with `PrivateFontCollection`.
 - Sizes: 14 or 16 px body, 12 px labels, 28 to 40 px for the main number on a card.
 - Use tabular (fixed-width) digits for numbers so values do not jump when they update.
 - Spacing scale: 4, 8, 12, 16, 24, 32, 48 px.
 - Window sizes: design at 1280 x 800, check the minimum 1024 x 640 and full HD 1920 x 1080 (SRD UI-1). Also check Windows display scaling at 125 and 150 percent, which most laptops use.
-- Theme: light first, dark second (FR-21). MudBlazor supports both through its theme object.
+- Theme: light first, dark second (FR-21). Keep the colours in one static `Theme` class in `frontend/` and apply them to controls in code, so switching themes is one place.
 
 ### 5.4 Chart color rules
 
@@ -261,13 +261,17 @@ In a narrow window (below about 900 px wide) the filter row collapses behind a "
 
 ## 7. Tools, kits and assets
 
-### Component libraries for Blazor
+### Windows Forms building blocks
 
-| Option | Pros | Cons | Link | Status |
-|---|---|---|---|---|
-| MudBlazor | Free, many components, theming for light and dark, big community | Basic charts, occasional breaking changes between major versions. Blazor Hybrid support not confirmed yet, test it first (`docs/references-desktop-architecture.md`, section 1E) | https://github.com/MudBlazor/MudBlazor | Verified |
-| Radzen Blazor | Rich data grid and charts, free tier | Heavier look, some features paid | https://www.radzen.com/blazor-components/ | Check |
-| Blazor admin template roundup | Quick look at what ready-made dashboards look like | Templates often cost money and bring a lot of unused code, so use them as inspiration only | https://adminlte.io/blog/blazor-admin-dashboard-templates/ | Verified |
+Use the built-in controls first. No component library is planned (a package needs team approval, AGENTS.md).
+
+| Need | Control | Note |
+|---|---|---|
+| City cards on the dashboard | `FlowLayoutPanel` holding one small `UserControl` per city | Wraps when the window is resized (UI-1) |
+| Tables (watchlist, ledger, history) | `DataGridView` | Set `ReadOnly`, turn off row headers, use invariant number formats only in exports |
+| Layout | `TableLayoutPanel`, `Dock` and `Anchor` | Avoid fixed pixel positions so 125 and 150 percent scaling works |
+| Risk badge | `Label` with back colour **and** text (and an icon) | Colour is never the only signal (UI-3) |
+| Charts | none built in on .NET 10 | Table first; a chart library only after SRD OPEN-9 is decided |
 
 ### Icons and illustrations
 
@@ -302,7 +306,7 @@ Reference for the numbers: Texas DIR color contrast guide https://dir.texas.gov/
 
 1. Each member collects **5 screenshots** that they like, each with one sentence about what to take from it (not "looks nice"). Put them in a shared Figma file or a folder.
 2. Vote on the direction in section 1.
-3. One person builds the tokens from section 5 in MudBlazor's theme and in Figma so designers and developers use the same values.
+3. One person builds the tokens from section 5 in the `Theme` class and in Figma so designers and developers use the same values.
 4. Draw the S3 dashboard and S4 city detail first. Those two screens carry the demo.
 5. Test the severity badges with a color blindness simulator before building the other screens.
 

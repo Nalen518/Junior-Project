@@ -4,9 +4,9 @@ Instructions for AI coding agents working in this repository. Humans: the long v
 
 ## Project
 
-ClimaPulse is a Windows desktop app (WPF with Blazor Hybrid) that compares live weather against 30-year historical baselines (z-score) to detect climate anomalies, show a multi-city watchlist, give advisories and keep a historical anomaly ledger. It is a university group project (UGM DTETI, group "Mendoan").
+ClimaPulse is a Windows desktop app (Windows Forms) that compares live weather against 30-year historical baselines (z-score) to detect climate anomalies, show a multi-city watchlist, give advisories and keep a historical anomaly ledger. It is a university group project (UGM DTETI, group "Mendoan").
 
-- Frontend: WPF window with `BlazorWebView`, screens as Razor components, in `frontend/` (Windows only)
+- Frontend: Windows Forms (`Form` and `UserControl` screens) in `frontend/` (Windows only). Blazor, Razor and WPF are not allowed for the UI.
 - Backend: services, repositories and `WeatherService` in `backend/` (a class library, no web server)
 - Contract between them: interfaces, DTOs, enums and exceptions in `shared/ClimaPulse.Contracts` (once created). Read `docs/api-contract.md` before touching a service, DTO or component.
 - Database: PostgreSQL through Npgsql, schema in `backend/Database/schema.sql`. Connection string from `CLIMAPULSE_DB_CONNECTION` (see `backend/.env.example`).
@@ -15,7 +15,7 @@ ClimaPulse is a Windows desktop app (WPF with Blazor Hybrid) that compares live 
 
 ## Architecture rules
 
-- Razor components inject only `ClimaPulse.Contracts` interfaces. Never a repository, `WeatherService` or another backend class. Only `frontend/MainWindow.xaml.cs` registers backend classes.
+- Forms and user controls receive only `ClimaPulse.Contracts` interfaces through their constructors. Never a repository, `WeatherService` or another backend class. Only `frontend/Program.cs` creates backend classes.
 - Services return DTOs, never `ClimaPulse.Models` entities. z-score and tier logic lives only in the backend.
 - Only `WeatherService` calls Open-Meteo.
 - C# namespaces stay `ClimaPulse.*` (Models, Repositories, Services, Strategies, Enums). Do not rename them.
@@ -50,7 +50,7 @@ ClimaPulse is a Windows desktop app (WPF with Blazor Hybrid) that compares live 
 - Say plainly when something could not be run or verified. Do not invent results, links or package names.
 - Handle empty results and a zero standard deviation before dividing.
 - Use `CultureInfo.InvariantCulture` for numbers in export files and URLs (Indonesian Windows uses a decimal comma).
-- Never block the UI thread: no `.Result` or `.Wait()` in components.
+- Never block the UI thread: no `.Result` or `.Wait()` in forms. Use `async void` event handlers that `await` the service.
 - Match the existing style. Keep explanations in docs plain and short.
 
 ## PRs

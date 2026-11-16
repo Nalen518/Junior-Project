@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Version | 0.3 draft |
-| Date | 2026-10-22 |
+| Version | 0.4 draft |
+| Date | 2026-11-16 |
 | Project | ClimaPulse, Junior Project, group "Mendoan", UGM DTETI |
 | Status | For team review. Items marked **OPEN** need a team decision. |
 | Based on | Module 1 project brief and grading criteria, README, Modul 3 class diagram, Modul 4 database (`backend/Database/schema.sql`), design decisions recorded in the project docs |
@@ -29,7 +29,7 @@ The system:
 Out of scope for version 1 are listed in section 6.
 
 ### 1.3 Platform note
-Module 1 requires the application to be written in C# as a desktop application (Windows Store, Windows Forms or WPF). ClimaPulse is a **WPF application that hosts its user interface with Blazor Hybrid** (`BlazorWebView`): the window is WPF, the screens are Razor components, and everything runs on .NET inside one process on the user's PC.
+Module 1 requires the application to be written in C# as a desktop application (Windows Store, Windows Forms or WPF). ClimaPulse is a **Windows Forms application**: the main window is a `Form`, each screen is a `UserControl` or dialog form, and everything runs on .NET inside one process on the user's PC. Blazor (including Blazor Hybrid) and WPF are not allowed for the UI (team decision, 2026-11-16).
 
 There is no web server and no HTTP API between the screens and the logic. The screens call C# service interfaces directly (section 4.2). Version 0.1 of this SRD described a web app with an HTTP API. That design is replaced.
 
@@ -65,7 +65,7 @@ One desktop program built from three projects in one repository (frontend, backe
 
 ```mermaid
 flowchart LR
-    U[User] --> F["Desktop UI: WPF window + Blazor Hybrid components"]
+    U[User] --> F["Desktop UI: Windows Forms (forms + user controls)"]
     F -->|C# interfaces in ClimaPulse.Contracts| A[Backend services]
     A --> E[Anomaly engine and strategies]
     E --> R[Repositories]
@@ -83,12 +83,12 @@ flowchart LR
 | Maintainer | A team member. | Seed advisories, refresh baselines, inspect health of the system. |
 
 ### 2.3 Operating environment
-Windows 10 (version 1809, build 17763) or later, or Windows 11, 64-bit. The Microsoft Edge WebView2 Runtime must be present (it is part of current Windows installs; check the demo laptop). .NET 10. A PostgreSQL server on the user's PC with a `climapulse` database. Internet access to Open-Meteo for live data and first-time history downloads.
+Windows 10 or Windows 11, 64-bit. .NET 10 (the demo build is self-contained, so the runtime ships with it). A PostgreSQL server on the user's PC with a `climapulse` database. Internet access to Open-Meteo for live data and first-time history downloads.
 
 ### 2.4 Constraints
-- C-1: C# on .NET 10 LTS. WPF with Blazor Hybrid (`BlazorWebView`) for the desktop UI. PostgreSQL through `Npgsql`. Required by Module 1: C# desktop application.
+- C-1: C# on .NET 10 LTS. Windows Forms for the desktop UI (no Blazor, no WPF). PostgreSQL through `Npgsql`. Required by Module 1: C# desktop application.
 - C-2: Open-Meteo is the only weather data source. Its free tier is for non-commercial use with request limits (confirm the exact numbers on the terms page).
-- C-3: Layering: Razor components depend only on `ClimaPulse.Contracts` interfaces. The UI never accesses repositories or the database, and only `WeatherService` calls Open-Meteo.
+- C-3: Layering: forms and user controls depend only on `ClimaPulse.Contracts` interfaces, received through their constructors. The UI never accesses repositories or the database, and only `WeatherService` calls Open-Meteo.
 - C-4: All timestamps are stored in UTC as ISO 8601 text.
 - C-5: The project is a university group project with a fixed schedule and four members, so scope is prioritized (section 3). Module 1 states a maximum of three members per group, so the group size must be confirmed with the teaching assistant (OPEN-8).
 - C-6: Work follows the Git rules in `docs/github-ai-agent-rules.md`.
@@ -145,7 +145,7 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 | FR-18 | The user can refresh all readings from the dashboard. | Must | A loading state shows while fetching and a time of last update is displayed. |
 | FR-19 | For an active anomaly the user sees the matching advisory (health and climate) in their language. | Must | The advisory with the highest `version` whose `effective_from` is not in the future is shown. If none exists in the user's language, the `id-ID` advisory is shown. |
 | FR-20 | The user can open a city detail view showing current value, baseline, z-score and recent history. | Should | The view shows the reading, baseline mean and standard deviation, and z-score for each metric. |
-| FR-21 | The dashboard supports light and dark themes. | Could | Theme choice persists after the app is closed (local settings file). |
+| FR-21 | The dashboard supports light and dark themes. | Could | Theme choice persists after the app is closed (local settings file). Windows Forms dark mode (`Application.SetColorMode`) was experimental in .NET 9; check its status in .NET 10, or set colours by hand. |
 
 ### 3.5 Historical Anomaly Ledger
 
@@ -227,8 +227,8 @@ Targets are starting points. The team should confirm them after measuring.
 | NFR-11 | Accessibility | Aim for WCAG 2.1 AA colour contrast on badges and text. |
 | NFR-12 | Maintainability | Layers stay separated (C-3). New metrics are added by adding a strategy, not by editing existing ones. |
 | NFR-13 | Testability | The anomaly engine and strategies have unit tests that need no network or database. |
-| NFR-14 | Portability | The app runs on Windows 10 (build 17763) or later, 64-bit. The Contracts and Backend projects and their tests build on any OS with the .NET 10 SDK. |
-| NFR-15 | Localization | User-facing text lives in resource files, not in component code. |
+| NFR-14 | Portability | The app runs on Windows 10 or later, 64-bit. The Contracts and Backend projects and their tests build on any OS with the .NET 10 SDK. |
+| NFR-15 | Localization | User-facing text lives in `.resx` resource files, not in form code. |
 | NFR-16 | Deployment | The demo build is a self-contained publish that starts with a double-click on a PC without the .NET SDK. A release zip and run instructions are on GitHub (Module 1: demo access information). |
 | NFR-17 | Reliability | The window stays responsive during refresh and baseline downloads, and an unexpected error in one screen does not close the app. |
 
@@ -269,11 +269,11 @@ Retention: observations and baselines are kept as long as the city exists. Ledge
 | Watchlist (FR-01 to FR-05) | City, Watchlist, UserProfile | `CityRepository`, `WatchlistRepository`, `UserProfileRepository` |
 | Ingestion and baselines (FR-06 to FR-09) | HistoricalObservation, Baseline | `WeatherService`, `HistoricalObservationRepository`, `BaselineRepository` |
 | Detection (FR-10 to FR-16) | Baseline | `AnomalyDetectionService`, `IAnomalyStrategy`, `TemperatureStrategy`, `PrecipitationStrategy`, `ClimateTwinEngine`, `ImpactEstimatorService` |
-| Dashboard and advisories (FR-17 to FR-21) | Advisory | `IDashboardService`, `IAdvisoryService`, `AdvisoryService`, `AdvisoryRepository`, `DashboardState` (frontend) |
+| Dashboard and advisories (FR-17 to FR-21) | Advisory | `IDashboardService`, `IAdvisoryService`, `AdvisoryService`, `AdvisoryRepository`, `DashboardState` (frontend), `DashboardView` (frontend) |
 | Ledger (FR-22 to FR-28) | AnomalyEvent | `IEventLedgerService`, `AnomalyEventRepository` |
 | Users (FR-29) | UserProfile | `IProfileService`, `UserProfileRepository` |
 
-Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` is not implemented yet. `AssignTier`, `TemperatureStrategy` and `PrecipitationStrategy` are implemented but not yet compiled or unit tested. `WindStrategy` does not exist yet (needed for FR-14). The `ClimaPulse.Contracts` project and the service classes that implement its interfaces do not exist yet. `frontend/Dashboard.razor` still uses `ClimaPulse.Models` entities and must switch to DTOs.
+Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` is not implemented yet. `AssignTier`, `TemperatureStrategy` and `PrecipitationStrategy` are implemented but not yet compiled or unit tested. `WindStrategy` does not exist yet (needed for FR-14). The `ClimaPulse.Contracts` project and the service classes that implement its interfaces do not exist yet. `frontend/Components/Dashboard.razor` is left over from the Blazor design and must be replaced by a Windows Forms `DashboardView` that uses DTOs. No `.csproj` or `.sln` exists yet.
 
 ---
 
@@ -298,7 +298,7 @@ On start the app shows a profile picker (FR-29). There are no passwords.
 Still to decide: which laptop runs the final demo, and whether the demo starts from an empty database or from `seed.sql` plus pre-downloaded baselines (recommended, so the demo does not depend on a slow first download).
 
 **OPEN-5: Scheduling.**
-Are live readings fetched only when the user presses refresh, or also by a background timer? A timer needs a hosted background service and more care with Open-Meteo limits.
+Are live readings fetched only when the user presses refresh, or also by a background timer? A timer (`System.Windows.Forms.Timer`) is simple to add but needs more care with Open-Meteo limits.
 
 **OPEN-6: Languages.**
 Indonesian and English both, or Indonesian only? Doing both doubles advisory writing.
@@ -308,6 +308,9 @@ Known: C# desktop app, Git on GitHub, a README with group members, a GitHub Page
 
 **OPEN-8: Group size.**
 Module 1 says groups have at most three members, but the group has four. Confirm with the teaching assistant that four is accepted and how roles (software architect, backend developer, frontend developer) are split across four people.
+
+**OPEN-9: Charts.**
+.NET 10 Windows Forms has no built-in chart control (the old `System.Windows.Forms.DataVisualization` is .NET Framework only). FR-20 history can start as a `DataGridView` table. If a chart is wanted, pick one library (for example ScottPlot.WinForms or LiveCharts2) and get team approval before adding the package.
 
 ---
 
@@ -319,3 +322,4 @@ Module 1 says groups have at most three members, but the group has four. Confirm
 | 0.2.1 | 2026-10-22 | Open-Meteo details: geocoding confirmed, daily-value comparison, real free-tier limits (NFR-03) |
 | 0.2 | 2026-10-22 | Platform changed to a WPF desktop app with Blazor Hybrid (Module 1). HTTP API replaced by in-process interfaces. No login, profile picker. Grading criteria added. OPEN-3 and OPEN-4 decided, OPEN-8 added |
 | 0.3 | 2026-11-16 | Database changed from SQLite to PostgreSQL (Npgsql). Connection string from `CLIMAPULSE_DB_CONNECTION` |
+| 0.4 | 2026-11-16 | UI changed from WPF with Blazor Hybrid to Windows Forms (Blazor and WPF not allowed). WebView2 requirement removed. OPEN-9 (charts) added |
