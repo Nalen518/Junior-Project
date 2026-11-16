@@ -35,7 +35,7 @@ direction TB
     +Upsert(Baseline item) void
   }
   class AdvisoryRepository {
-    +GetLatest(MetricType metric, SeverityTier tier, string locale) Advisory
+    +GetLatest(MetricType metric, SeverityTier tier, string locale) List~Advisory~
   }
   class AnomalyEventRepository {
     +GetOpenEvent(int cityId, MetricType metric) AnomalyEvent
