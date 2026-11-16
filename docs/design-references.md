@@ -194,7 +194,7 @@ Yellow, orange and red are hard to tell apart for people with red-green color bl
 
 ### 5.3 Typography and spacing
 
-- Typeface: Segoe UI, the Windows default (`ApplicationConfiguration.Initialize` sets it). **Pro:** installed on every Windows PC, very readable, no font file to ship. **Con:** very common, so the look comes from layout and color, not the font. Inter is possible but must be bundled and loaded with `PrivateFontCollection`.
+- Typeface: Segoe UI, the default Windows Forms font on .NET. **Pro:** installed on every Windows PC, very readable, no font file to ship. **Con:** very common, so the look comes from layout and color, not the font. Inter is possible but must be bundled and loaded with `PrivateFontCollection`.
 - Sizes: 14 or 16 px body, 12 px labels, 28 to 40 px for the main number on a card.
 - Use tabular (fixed-width) digits for numbers so values do not jump when they update.
 - Spacing scale: 4, 8, 12, 16, 24, 32, 48 px.

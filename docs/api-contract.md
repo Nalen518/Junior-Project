@@ -421,7 +421,7 @@ public sealed class UpstreamException(string message, int? cityId = null, Except
 
 Rules:
 1. The UI catches `ClimaPulseException` around every service call. One shared helper does this, so screens do not repeat the code.
-2. `Program.cs` sets `Application.ThreadException` and `AppDomain.CurrentDomain.UnhandledException` handlers that log the error and show a message, so an unexpected bug does not close the app during the demo.
+2. `Program.cs` sets `Application.ThreadException` (with `UnhandledExceptionMode.CatchException`) to log the error and show a message, so an unexpected bug on the UI thread does not close the app during the demo. `AppDomain.CurrentDomain.UnhandledException` only logs errors from other threads; the process still ends.
 3. One city failing must not block the others. The UI refreshes cities one call each.
 4. Messages never contain SQL, stack traces or file paths.
 
