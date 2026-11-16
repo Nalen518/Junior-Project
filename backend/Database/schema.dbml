@@ -1,7 +1,7 @@
-// ClimaPulse Database Design (SQLite)
+// ClimaPulse Database Design (PostgreSQL)
 
 Project ClimaPulse {
-  database_type: 'SQLite'
+  database_type: 'PostgreSQL'
   Note: '''
     Desktop climate anomaly monitoring app.
     Baselines are per city, metric, and calendar month.
@@ -16,7 +16,7 @@ Table UserProfile {
   preferred_temperature_unit text    [not null, default: 'C', note: 'C or F']
   preferred_locale           text    [not null, default: 'id-ID']
   created_at                 text    [not null, note: 'ISO 8601 UTC']
-  is_active                  integer [not null, default: 1, note: 'boolean 0 or 1']
+  is_active                  integer [not null, default: 1, note: 'boolean stored as 0 or 1']
 }
 
 Table City {
@@ -24,10 +24,10 @@ Table City {
   name           text    [not null]
   country_code   text    [not null, note: 'ISO 3166-1 alpha-2']
   admin_region   text
-  latitude       real    [not null]
-  longitude      real    [not null]
+  latitude       double    [not null]
+  longitude      double    [not null]
   timezone       text    [not null, note: 'IANA identifier']
-  elevation_m    real
+  elevation_m    double
   open_meteo_ref text
 }
 
@@ -35,7 +35,7 @@ Table Watchlist {
   watchlist_id           integer [pk, increment]
   profile_id             integer [not null]
   city_id                integer [not null]
-  alert_threshold_zscore real    [not null, default: 2.0]
+  alert_threshold_zscore double    [not null, default: 2.0]
   notes                  text
   added_at               text    [not null]
 
@@ -50,7 +50,7 @@ Table HistoricalObservation {
   city_id        integer [not null]
   metric_type    text    [not null, note: 'temperature_2m, precipitation, wind_speed_10m']
   observed_at    text    [not null, note: 'ISO 8601 UTC, hourly grain']
-  value          real    [not null]
+  value          double    [not null]
   source         text    [not null, default: 'open-meteo']
   fetched_at     text    [not null]
 
@@ -64,8 +64,8 @@ Table Baseline {
   city_id             integer [not null]
   metric_type         text    [not null]
   month               integer [not null, note: '1 through 12']
-  mean_value          real    [not null]
-  stddev_value        real    [not null]
+  mean_value          double    [not null]
+  stddev_value        double    [not null]
   sample_size         integer [not null]
   baseline_start_year integer [not null]
   baseline_end_year   integer [not null]
@@ -102,10 +102,10 @@ Table AnomalyEvent {
   started_at               text    [not null]
   ended_at                 text    [note: 'NULL while the episode is open']
   peak_at                  text    [not null]
-  peak_observed_value      real    [not null]
-  peak_zscore              real    [not null]
-  baseline_mean_snapshot   real    [not null]
-  baseline_stddev_snapshot real    [not null]
+  peak_observed_value      double    [not null]
+  peak_zscore              double    [not null]
+  baseline_mean_snapshot   double    [not null]
+  baseline_stddev_snapshot double    [not null]
   status                   text    [not null, default: 'active', note: 'active or closed']
   created_at               text    [not null]
 

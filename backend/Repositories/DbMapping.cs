@@ -4,7 +4,7 @@ using ClimaPulse.Enums;
 namespace ClimaPulse.Repositories;
 
 /// <summary>
-/// Converts between C# values and the text forms stored in SQLite.
+/// Converts between C# values and the text forms stored in PostgreSQL.
 /// Timestamps are UTC ISO 8601 text such as 2026-09-20T15:37:00Z, which sorts
 /// correctly as a string.
 /// </summary>
