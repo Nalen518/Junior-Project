@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="backend/ClimaPulse.Backend.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/ClimaPulse.Backend.Tests/ClimaPulse.Backend.Tests.csproj" />
+  </Folder>
+</Solution>

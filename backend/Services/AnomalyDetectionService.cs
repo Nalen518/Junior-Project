@@ -16,21 +16,39 @@ public class AnomalyDetectionService
     public const double WarningThreshold = 3.0;
     public const double ExtremeThreshold = 4.0;
 
-    private readonly IAnomalyStrategy _strategy;
+    // One strategy per metric. Callers only see IAnomalyStrategy (polymorphism).
+    private readonly IReadOnlyDictionary<MetricType, IAnomalyStrategy> _strategies;
     private readonly WeatherService _weatherService;
     private readonly BaselineRepository _baselineRepo;
     private readonly AnomalyEventRepository _eventRepo;
 
     public AnomalyDetectionService(
-        IAnomalyStrategy strategy,
+        IReadOnlyDictionary<MetricType, IAnomalyStrategy> strategies,
         WeatherService weatherService,
         BaselineRepository baselineRepo,
         AnomalyEventRepository eventRepo)
     {
-        _strategy = strategy;
+        ArgumentNullException.ThrowIfNull(strategies);
+        _strategies = strategies;
         _weatherService = weatherService;
         _baselineRepo = baselineRepo;
         _eventRepo = eventRepo;
+    }
+
+    /// <summary>
+    /// Judges one reading against its monthly baseline (SRD FR-10, FR-11): picks the strategy
+    /// for the baseline's metric, lets that strategy compute the z-score, then sets the tier.
+    /// The same call works for temperature and rain because each strategy overrides Evaluate.
+    /// </summary>
+    public AnomalyResult Evaluate(double observed, Baseline baseline)
+    {
+        ArgumentNullException.ThrowIfNull(baseline);
+        if (!_strategies.TryGetValue(baseline.MetricType, out var strategy))
+            throw new NotSupportedException($"No anomaly strategy for {baseline.MetricType} yet.");
+
+        var result = strategy.Evaluate(observed, baseline);
+        result.SeverityTier = AssignTier(result.DeviationSigma);
+        return result;
     }
 
     public async Task<AnomalyResult> AnalyzeCityAsync(City city)

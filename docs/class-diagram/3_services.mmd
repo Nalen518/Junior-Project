@@ -16,6 +16,7 @@ direction TB
   }
   class AnomalyDetectionService {
     +AnalyzeCityAsync(City city) Task~AnomalyResult~
+    +Evaluate(double observed, Baseline baseline) AnomalyResult
     +AssignTier(double zScore) SeverityTier
   }
   class AdvisoryService {
@@ -54,7 +55,7 @@ IAnomalyStrategy <|.. TemperatureStrategy
 IAnomalyStrategy <|.. PrecipitationStrategy
 IAnomalyStrategy ..> AnomalyResult
 IAnomalyStrategy ..> Baseline
-AnomalyDetectionService --> IAnomalyStrategy
+AnomalyDetectionService "1" --> "*" IAnomalyStrategy : one per MetricType
 AnomalyDetectionService --> WeatherService
 AnomalyDetectionService --> BaselineRepository
 AnomalyDetectionService --> AnomalyEventRepository
