@@ -26,7 +26,7 @@ This file explains how ClimaPulse is built as a desktop app, how to set up the p
 
 **A. Windows Forms**
 - Pros: allowed by Module 1 and by the team. Drag-and-drop designer in Visual Studio, so screens are quick to build. Built-in `DataGridView`, `SaveFileDialog`, `.resx` localization and keyboard focus handling. No WebView2 runtime needed.
-- Cons: looks plainer than a web UI, so colours and spacing need care. No built-in chart control on .NET 10 (see 1E). Layout on high-DPI screens needs testing.
+- Cons: looks plainer than a web UI, so colours and spacing need care. No built-in chart control on .NET 10, so charts are drawn by hand (see 1E). Layout on high-DPI screens needs testing.
 
 **B. In-process services instead of an HTTP API**
 - Pros: one program, one F5, nothing to start first. No ports, CORS or network errors between UI and logic, which protects the "demo runs without errors" grade (20 percent). The contract is checked by the compiler.
@@ -42,7 +42,10 @@ This file explains how ClimaPulse is built as a desktop app, how to set up the p
 
 **E. Charts (SRD OPEN-9)**
 - The old `System.Windows.Forms.DataVisualization` chart is .NET Framework only.
-- Start with a `DataGridView` for city history. If a chart is needed, pick one library (for example ScottPlot.WinForms or LiveCharts2), try it in a 15-minute spike, and get team approval before adding the package (AGENTS.md).
+- **Decided 2026-11-21: draw by hand, no library.** One small `UserControl` per chart (`BellCurveChart`, `TrendChart`) that overrides `OnPaint` and draws with `e.Graphics` (`DrawLine`, `DrawLines`, `FillRectangle`, `DrawString`). Set `DoubleBuffered = true` to stop flicker and call `Invalidate()` when the data changes.
+- Bell curve: plot the normal curve from -4σ to +4σ, a line at the mean, and a marker at today's z-score (clamp to ±4.5 so it stays on screen).
+- 14-day chart: a shaded band for mean ± 2σ, a line for the daily values, a dot for today. Scale values to pixels from the min and max of the data and the band.
+- Pros: no package, full control over the Figma look. Cons: no zoom or tooltips; add a one-sentence text summary under each chart instead.
 
 **F. No dependency injection package**
 - `Program.cs` builds the objects by hand and passes interfaces into each form's constructor. For one window and about ten services this is shorter than `Microsoft.Extensions.DependencyInjection` and needs no extra package.
@@ -292,12 +295,11 @@ Zip the `publish/ClimaPulse` folder and attach it to a GitHub Release. Module 1 
 
 Confirmed on those pages on 2026-10-22: free use is non-commercial, under CC BY 4.0, limited to less than 600 calls per minute, 5,000 per hour, 10,000 per day and 300,000 per month per IP address. ERA5 and ERA5-Land archive data has about a 5-day delay. The endpoints, variables and units the backend uses are fixed in `docs/api-contract.md`, section 14. Cache every archive response in `HistoricalObservation` so a city is never downloaded twice.
 
-### Charts (only if SRD OPEN-9 decides for one)
+### Charts (drawn by hand, SRD OPEN-9)
 
 | Topic | Link | Status |
 |---|---|---|
-| ScottPlot (has a WinForms control) | https://scottplot.net/ | Check |
-| LiveCharts2 (has a WinForms control) | https://livecharts.dev/ | Check |
+| Custom painting in Windows Forms (`OnPaint`, `Graphics`) | https://learn.microsoft.com/dotnet/desktop/winforms/controls/custom-painting-and-rendering | Check |
 
 ---
 

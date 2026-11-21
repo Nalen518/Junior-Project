@@ -309,8 +309,8 @@ Known: C# desktop app, Git on GitHub, a README with group members, a GitHub Page
 **OPEN-8: Group size.**
 Module 1 says groups have at most three members, but the group has four. Confirm with the teaching assistant that four is accepted and how roles (software architect, backend developer, frontend developer) are split across four people.
 
-**OPEN-9: Charts.**
-.NET 10 Windows Forms has no built-in chart control (the old `System.Windows.Forms.DataVisualization` is .NET Framework only). FR-20 history can start as a `DataGridView` table. If a chart is wanted, pick one library (for example ScottPlot.WinForms or LiveCharts2) and get team approval before adding the package.
+**OPEN-9: Charts. DECIDED 2026-11-21: drawn by hand, no library.**
+.NET 10 Windows Forms has no built-in chart control (the old `System.Windows.Forms.DataVisualization` is .NET Framework only). The bell curve (S4 "Today vs the 30-year normal") and the 14-day line chart (S4 "Last 14 days") are drawn with `System.Drawing.Graphics` in a `Paint` handler. No chart package is added. Each chart also shows a one-sentence text summary (NFR-11).
 
 ---
 
@@ -323,4 +323,5 @@ Module 1 says groups have at most three members, but the group has four. Confirm
 | 0.2 | 2026-10-22 | Platform changed to a WPF desktop app with Blazor Hybrid (Module 1). HTTP API replaced by in-process interfaces. No login, profile picker. Grading criteria added. OPEN-3 and OPEN-4 decided, OPEN-8 added |
 | 0.3 | 2026-11-16 | Database changed from SQLite to PostgreSQL (Npgsql). Connection string from `CLIMAPULSE_DB_CONNECTION` |
 | 0.4 | 2026-11-16 | UI changed from WPF with Blazor Hybrid to Windows Forms (Blazor and WPF not allowed). WebView2 requirement removed. OPEN-9 (charts) added |
+| 0.4.2 | 2026-11-21 | OPEN-9 decided: charts drawn by hand with `Graphics`, no chart library. Figma Set A (sidebar) is the final design |
 | 0.4.1 | 2026-11-16 | Advisory uniqueness now includes category, so health and climate advisories can share a version number |
