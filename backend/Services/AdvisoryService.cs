@@ -12,7 +12,7 @@ namespace ClimaPulse.Services;
 public class AdvisoryService
 {
     /// <summary>Used when the user's language has no advisory for this metric and tier.</summary>
-    public const string FallbackLocale = "id-ID";
+    public const string FallbackLocale = "en-US";   // v1 is English only (SRD UI-5)
 
     private readonly AdvisoryRepository _advisoryRepo;
 
@@ -24,7 +24,7 @@ public class AdvisoryService
 
     /// <summary>
     /// Latest version per category (health, climate) for a metric, tier and locale, falling
-    /// back to id-ID when the locale has none. Normal means no anomaly, so it returns nothing.
+    /// back to en-US when the locale has none. Normal means no anomaly, so it returns nothing.
     /// </summary>
     public List<Advisory> GetLatest(MetricType metric, SeverityTier tier, string locale)
     {

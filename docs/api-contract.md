@@ -132,7 +132,7 @@ public interface IBaselineService
 
 public interface IAdvisoryService
 {
-    /// <summary>Latest version per category, falling back to id-ID when the locale has none. FR-19.</summary>
+    /// <summary>Latest version per category, falling back to en-US when the locale has none. FR-19.</summary>
     Task<IReadOnlyList<AdvisoryDto>> GetLatestAsync(MetricType metric, SeverityTier tier, string locale, CancellationToken ct = default);
 }
 
@@ -323,7 +323,7 @@ namespace ClimaPulse.Contracts;
 public sealed record CreateProfileRequest(
     string DisplayName,                                         // 1 to 50 chars
     TemperatureUnit PreferredTemperatureUnit = TemperatureUnit.Celsius,
-    string PreferredLocale = "id-ID");                          // up to 10 chars
+    string PreferredLocale = "en-US");                          // up to 10 chars
 
 /// <summary>Full replacement: send every field.</summary>
 public sealed record UpdateProfileRequest(
@@ -354,7 +354,7 @@ public sealed record EventQuery(
 | Field | Rule |
 |---|---|
 | `DisplayName` | 1 to 50 characters, not only spaces |
-| `PreferredLocale` | up to 10 characters, `id-ID` or `en-US` in v1 |
+| `PreferredLocale` | up to 10 characters, `en-US` only in v1 (SRD UI-5) |
 | `AlertThresholdZScore` | greater than 0 |
 | `Notes` | up to 500 characters |
 | `pageSize` | 1 to 100, default 20; `page` starts at 1 |
@@ -574,7 +574,7 @@ Numbers in URLs use `CultureInfo.InvariantCulture`. On an Indonesian Windows, `-
 **Geocoding (FR-01)**
 ```
 GET https://geocoding-api.open-meteo.com/v1/search
-    ?name={query}&count=10&language={en|id}&format=json
+    ?name={query}&count=10&language=en&format=json
 ```
 - The docs say empty and one-letter searches return nothing, two letters match exact names, and three or more letters match by prefix. The service throws `ValidationException` for fewer than 2 characters, and the UI waits about 300 ms after typing stops before searching.
 - Optional `countryCode=ID` narrows results to one country.
@@ -656,7 +656,7 @@ On a shared campus network, the whole class shares one public IP address, so the
 
 ### 14.9 Test URLs (open in a browser, Yogyakarta)
 
-1. Geocoding: `https://geocoding-api.open-meteo.com/v1/search?name=Yogyakarta&count=3&language=id&format=json`
+1. Geocoding: `https://geocoding-api.open-meteo.com/v1/search?name=Yogyakarta&count=3&language=en&format=json`
 2. Forecast today: `https://api.open-meteo.com/v1/forecast?latitude=-7.7956&longitude=110.3695&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=Asia%2FJakarta&forecast_days=1`
 3. Archive, 3 days (**Confirm** `temperature_2m_mean`): `https://archive-api.open-meteo.com/v1/archive?latitude=-7.7956&longitude=110.3695&start_date=2024-09-01&end_date=2024-09-03&daily=temperature_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=Asia%2FJakarta`
 

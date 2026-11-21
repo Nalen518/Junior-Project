@@ -14,7 +14,7 @@ Table UserProfile {
   profile_id                 integer [pk, increment]
   display_name               text    [not null, note: 'max 50 chars']
   preferred_temperature_unit text    [not null, default: 'C', note: 'C or F']
-  preferred_locale           text    [not null, default: 'id-ID']
+  preferred_locale           text    [not null, default: 'en-US']
   created_at                 text    [not null, note: 'ISO 8601 UTC']
   is_active                  integer [not null, default: 1, note: 'boolean stored as 0 or 1']
 }
@@ -80,7 +80,7 @@ Table Advisory {
   advisory_id    integer [pk, increment]
   metric_type    text    [not null]
   severity_tier  text    [not null, note: 'watch, warning, or extreme']
-  locale         text    [not null, default: 'id-ID']
+  locale         text    [not null, default: 'en-US']
   category       text    [not null, note: 'health or climate']
   title          text    [not null]
   body           text    [not null]
