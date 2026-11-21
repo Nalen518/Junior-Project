@@ -45,7 +45,7 @@ Nalen's Contracts project blocks both Christa and Syauqi, so it comes first. Chr
 - [ ] Move `backend/Enums/*.cs` into the Contracts project (namespace stays `ClimaPulse.Enums`)
 - [ ] Add Contracts and the empty Windows Forms project `frontend/ClimaPulse.Desktop` to `ClimaPulse.slnx`
 - [ ] `frontend/Program.cs`: composition root with the `UseFakes` switch and the two crash handlers (architecture guide, step 3)
-- [ ] Delete the leftover `frontend/Components/Dashboard.razor` once Christa's `DashboardView` exists
+- [x] Delete the leftover `frontend/Components/Dashboard.razor` (done 2026-11-21, no Blazor left in the repo)
 
 ### Decisions to close
 - [ ] OPEN-1: tier thresholds (proposed Watch 2.0, Warning 3.0, Extreme 4.0) and the hysteresis margin (proposed 0.25). Syauqi needs this before the ledger logic

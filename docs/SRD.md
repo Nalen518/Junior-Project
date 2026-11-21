@@ -273,7 +273,7 @@ Retention: observations and baselines are kept as long as the city exists. Ledge
 | Ledger (FR-22 to FR-28) | AnomalyEvent | `IEventLedgerService`, `AnomalyEventRepository` |
 | Users (FR-29) | UserProfile | `IProfileService`, `UserProfileRepository` |
 
-Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` is not implemented yet. `AssignTier`, `TemperatureStrategy` and `PrecipitationStrategy` are implemented but not yet compiled or unit tested. `WindStrategy` does not exist yet (needed for FR-14). The `ClimaPulse.Contracts` project and the service classes that implement its interfaces do not exist yet. `frontend/Components/Dashboard.razor` is left over from the Blazor design and must be replaced by a Windows Forms `DashboardView` that uses DTOs. Only the Backend and Backend.Tests projects exist (`ClimaPulse.slnx`); Contracts and Desktop do not.
+Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` is not implemented yet. `AssignTier`, `TemperatureStrategy` and `PrecipitationStrategy` are implemented but not yet compiled or unit tested. `WindStrategy` does not exist yet (needed for FR-14). The `ClimaPulse.Contracts` project and the service classes that implement its interfaces do not exist yet. The Windows Forms screens (starting with `DashboardView`) do not exist yet; the leftover Blazor file was deleted on 2026-11-21. Only the Backend and Backend.Tests projects exist (`ClimaPulse.slnx`); Contracts and Desktop do not.
 
 ---
 

@@ -119,7 +119,7 @@ dotnet add backend  package Npgsql
 
 Pitfalls:
 - `dotnet new` writes `Class1.cs`, `Form1.cs` and `Program.cs` into folders that already hold code. Check `git status` afterwards. Keep one `Program.cs` in `frontend/` (the template's version, with the composition root from step 3) and delete the generated `Class1.cs` files.
-- `frontend/Components/Dashboard.razor` is left over from the Blazor design. Delete it once `DashboardView` exists (a file deletion, so agree on it first, AGENTS.md).
+- The leftover Blazor file `frontend/Components/Dashboard.razor` was deleted on 2026-11-21. The frontend contains only C# (Windows Forms).
 - Move `backend/Enums/*.cs` into `shared/ClimaPulse.Contracts/Enums/`, keeping the namespace `ClimaPulse.Enums`, so the UI can use them without referencing the backend. This is a file move, so agree on it first.
 - Each package needs team approval before it is added (AGENTS.md).
 
