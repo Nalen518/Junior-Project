@@ -271,7 +271,7 @@ Use the built-in controls first. No component library is planned (a package need
 | Tables (watchlist, ledger, history) | `DataGridView` | Set `ReadOnly`, turn off row headers, use invariant number formats only in exports |
 | Layout | `TableLayoutPanel`, `Dock` and `Anchor` | Avoid fixed pixel positions so 125 and 150 percent scaling works |
 | Risk badge | `Label` with back colour **and** text (and an icon) | Colour is never the only signal (UI-3) |
-| Charts | none built in on .NET 10 | Table first; a chart library only after SRD OPEN-9 is decided |
+| Charts | a custom `UserControl` that draws with `Graphics` in `OnPaint` | No library (SRD OPEN-9). Bell curve and 14-day chart as in Figma S4 |
 
 ### Icons and illustrations
 
