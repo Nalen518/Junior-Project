@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Version | 0.4 draft |
-| Date | 2026-11-16 |
+| Version | 0.4.3 draft |
+| Date | 2026-11-21 |
 | Project | ClimaPulse, Junior Project, group "Mendoan", UGM DTETI |
 | Status | For team review. Items marked **OPEN** need a team decision. |
 | Based on | Module 1 project brief and grading criteria, README, Modul 3 class diagram, Modul 4 database (`backend/Database/schema.sql`), design decisions recorded in the project docs |
@@ -97,7 +97,7 @@ Windows 10 or Windows 11, 64-bit. .NET 10 (the demo build is self-contained, so 
 ### 2.5 Assumptions and dependencies
 - A-1: Open-Meteo stays available and keeps its variable names (`temperature_2m`, `precipitation`, `wind_speed_10m`).
 - A-2: About 30 years of archive data exist for every city the user can add.
-- A-3: Sample advisories are written by the team in Indonesian (`id-ID`) and English, loaded through `seed.sql`.
+- A-3: Sample advisories are written by the team in English (`en-US`) and loaded through `seed.sql`. The `locale` column stays so Indonesian can be added later.
 - A-4: The app is installed per PC. One person uses it at a time, and several local profiles can share one PC (demo scale, not production scale).
 
 ---
@@ -114,7 +114,7 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 | FR-02 | The user can add a city to their watchlist. | Must | After adding, the city appears on the dashboard. Adding the same city twice is rejected with a clear message (unique profile and city). |
 | FR-03 | The user can remove a city from the watchlist. | Must | The city disappears from the dashboard. Its observations and baselines remain for other users. |
 | FR-04 | The user can set an alert threshold (z-score) and a note per watched city. | Should | Default threshold is 2.0. Values of 0 or less are rejected. Notes are at most 500 characters. |
-| FR-05 | The user can set display preferences: temperature unit (C or F) and language (`id-ID` or `en-US`). | Should | Changing the unit converts every temperature shown. Data stored stays in Celsius. |
+| FR-05 | The user can set the temperature unit (C or F). Language choice is out of scope for v1 (UI-5). | Should | Changing the unit converts every temperature shown. Data stored stays in Celsius. |
 
 ### 3.2 Data ingestion and baselines
 
@@ -143,9 +143,9 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 |---|---|---|---|
 | FR-17 | The dashboard lists all watched cities with a risk badge (Normal, Watch, Warning, Extreme) per metric. | Must | The badge colour and text both show the tier, so colour is not the only signal. |
 | FR-18 | The user can refresh all readings from the dashboard. | Must | A loading state shows while fetching and a time of last update is displayed. |
-| FR-19 | For an active anomaly the user sees the matching advisory (health and climate) in their language. | Must | The advisory with the highest `version` whose `effective_from` is not in the future is shown. If none exists in the user's language, the `id-ID` advisory is shown. |
+| FR-19 | For an active anomaly the user sees the matching advisory (health and climate) . | Must | The advisory with the highest `version` whose `effective_from` is not in the future is shown, one per category (health, climate). v1 uses English (`en-US`) advisories only. |
 | FR-20 | The user can open a city detail view showing current value, baseline, z-score and recent history. | Should | The view shows the reading, baseline mean and standard deviation, and z-score for each metric. |
-| FR-21 | The dashboard supports light and dark themes. | Could | Theme choice persists after the app is closed (local settings file). Windows Forms dark mode (`Application.SetColorMode`) was experimental in .NET 9; check its status in .NET 10, or set colours by hand. |
+| FR-21 | The dashboard supports light and dark themes. | Won't (v1) | Decided 2026-11-21: light theme only in v1. |
 
 ### 3.5 Historical Anomaly Ledger
 
@@ -171,11 +171,11 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 ## 4. External interface requirements
 
 ### 4.1 User interface
-- UI-1: The window works from 1024 x 640 pixels up to full HD and adapts when resized.
+- UI-1: The window works from 1024 x 640 pixels up to full HD and adapts when resized. Checked in the built app; there is no separate mockup at 1024 x 640.
 - UI-2: Dashboard first. A user reaches the watchlist, ledger and settings in at most two clicks.
 - UI-3: Every risk badge pairs colour with text. Interactive elements are keyboard reachable and have visible focus.
 - UI-4: Loading, empty and error states are shown for every data view.
-- UI-5: Indonesian is the default language, English is the second.
+- UI-5: The user interface is in English only for v1 (decided 2026-11-21). All user-facing text still lives in `.resx` files (NFR-15), so Indonesian can be added later.
 
 ### 4.2 Internal interface between frontend and backend
 
@@ -300,8 +300,8 @@ Still to decide: which laptop runs the final demo, and whether the demo starts f
 **OPEN-5: Scheduling.**
 Are live readings fetched only when the user presses refresh, or also by a background timer? A timer (`System.Windows.Forms.Timer`) is simple to add but needs more care with Open-Meteo limits.
 
-**OPEN-6: Languages.**
-Indonesian and English both, or Indonesian only? Doing both doubles advisory writing.
+**OPEN-6: Languages. DECIDED 2026-11-21: English only for v1.**
+Interface and advisories are in English. Indonesian is a later version; the `locale` column and `.resx` files keep that possible.
 
 **OPEN-7: Course constraints. PARTLY ANSWERED by Module 1.**
 Known: C# desktop app, Git on GitHub, a README with group members, a GitHub Page from the `docs` folder on `main`, demo access information, brief usage documentation, and the grading weights in C-7. Still unknown: whether later modules require specific diagrams, test evidence or a fixed SRD template.
@@ -323,5 +323,6 @@ Module 1 says groups have at most three members, but the group has four. Confirm
 | 0.2 | 2026-10-22 | Platform changed to a WPF desktop app with Blazor Hybrid (Module 1). HTTP API replaced by in-process interfaces. No login, profile picker. Grading criteria added. OPEN-3 and OPEN-4 decided, OPEN-8 added |
 | 0.3 | 2026-11-16 | Database changed from SQLite to PostgreSQL (Npgsql). Connection string from `CLIMAPULSE_DB_CONNECTION` |
 | 0.4 | 2026-11-16 | UI changed from WPF with Blazor Hybrid to Windows Forms (Blazor and WPF not allowed). WebView2 requirement removed. OPEN-9 (charts) added |
+| 0.4.3 | 2026-11-21 | English only for v1 (UI-5, FR-05, FR-19, A-3, OPEN-6). Dark theme moved to Won't (FR-21). UI-1 checked in the built app, no 1024 x 640 mockup |
 | 0.4.2 | 2026-11-21 | OPEN-9 decided: charts drawn by hand with `Graphics`, no chart library. Figma Set A (sidebar) is the final design |
 | 0.4.1 | 2026-11-16 | Advisory uniqueness now includes category, so health and climate advisories can share a version number |
