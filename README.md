@@ -19,7 +19,6 @@ ClimaPulse is a Windows desktop app built with Windows Forms. Everything runs in
 ```
 .
 |-- frontend/    ClimaPulse.Desktop: Windows Forms app (Windows only)
-|   |-- Components/     Dashboard.razor (left over from the Blazor design, to be replaced by Windows Forms screens)
 |   `-- State/          DashboardState.cs (UI state shared by screens)
 |-- backend/     ClimaPulse.Backend: services, repositories, WeatherService, PostgreSQL
 |   |-- Database/       schema.sql, seed.sql, schema.dbml
