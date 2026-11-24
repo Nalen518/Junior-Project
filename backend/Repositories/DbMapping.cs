@@ -14,6 +14,10 @@ internal static class DbMapping
 
     // ---- timestamps ------------------------------------------------------
 
+    // HistoricalObservation.observed_at holds Open-Meteo daily values. The local date
+    // 2026-10-22 is stored as 2026-10-22T00:00:00Z: a date label, not an instant.
+    // The baseline month comes from that local date. Do not convert it between time zones.
+
     public static string ToDb(this DateTime value)
     {
         var utc = value.Kind == DateTimeKind.Local
