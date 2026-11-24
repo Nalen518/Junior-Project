@@ -1,6 +1,6 @@
 # ClimaPulse Internal API Contract (v2)
 
-Status: draft for team approval. Last updated 2026-11-16 (UI changed to Windows Forms, database to PostgreSQL).
+Status: draft for team approval. Last updated 2026-11-24 (decision C2, thresholds and in-memory dashboard readings).
 
 This document is the agreement between the **frontend** (Windows Forms forms and user controls in the desktop app) and the **backend** (services, repositories, Open-Meteo access). Both sides build against the same C# interfaces and DTOs in `shared/ClimaPulse.Contracts`. That project **is** the contract. This file explains it and the rules around it. If the two ever disagree, the code in `shared/ClimaPulse.Contracts` wins and this file gets fixed.
 
@@ -446,7 +446,7 @@ Rules:
 
 ## 9. Behaviour both sides must agree on
 
-1. **Refresh is user-triggered in v1** (button or page open). `IDashboardService.GetAsync` reads stored data only and never calls Open-Meteo.
+1. **Refresh is user-triggered in v1** (button or page open). `IDashboardService.GetAsync` reads stored data only and never calls Open-Meteo. The last refresh per city is kept in memory (SRD OPEN-10), so after an app restart each city has `LastRefreshedAt = null` and an empty `Metrics` list until it is refreshed.
 2. **Baseline refresh is slow** (years of archive data). The UI shows the `IProgress<int>` value and disables the button. A second call for the same city while one runs throws `ConflictException`.
 3. **Update requests replace everything.** Send every field. `Notes = null` clears the note.
 4. **Removing a watched city keeps its events** in the ledger.
@@ -463,6 +463,8 @@ Rules:
 | CSV | header row, UTF-8, comma separator |
 
 The decimal rule matters: Indonesian Windows uses a comma for decimals, so `29.1.ToString()` would write `29,1` and break the CSV. Always pass `CultureInfo.InvariantCulture`.
+
+8. **Thresholds (SRD OPEN-1):** tiers use the global values (Watch 2.0, Warning 3.0, Extreme 4.0 on the absolute z-score), and an event closes below 1.75. `AlertThresholdZScore` never opens or closes an event; the UI only uses it to highlight a card.
 
 ---
 
@@ -496,6 +498,7 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 | 2026-10-17 | v1 | HTTP contract (`openapi.yaml`) from SRD 4.2 and the schema |
 | 2026-10-22 | v2 | Desktop app: in-process C# interfaces, typed exceptions, profile list for the picker, progress on baseline refresh, `openapi.yaml` retired |
 | 2026-10-22 | v2.1 | Section 14: Open-Meteo endpoints, variables, units, error mapping, limits and requirement coverage. Proposed daily-vs-daily comparison |
+| 2026-11-24 | v2.2 | C2 decided: search throws `UpstreamException`, no stored-list fallback. Section 9: last refresh kept in memory, global thresholds (SRD OPEN-1, OPEN-10). No interface or DTO change |
 
 ---
 
@@ -516,7 +519,7 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 | # | Question | Options and trade-offs | Recommendation |
 |---|---|---|---|
 | C1 | Errors as exceptions or as a `Result<T>` return value? | **Exceptions (this draft):** simple, the usual C# style, one catch helper in the UI. Easy to forget a catch. **Result<T>:** the compiler forces handling. More code on every call, and less common in course examples. | Exceptions |
-| C2 | Where does `ICityService.SearchAsync` get results? | **Open-Meteo geocoding API:** any city in the world, one more `WeatherService` call. Confirm its terms first. **Only the stored list:** no network, but users can only pick from cities the team seeded. | Geocoding, with the stored list as fallback when offline |
+| C2 | Where does `ICityService.SearchAsync` get results? | **Open-Meteo geocoding API:** any city in the world, one more `WeatherService` call. Confirm its terms first. **Only the stored list:** no network, but users can only pick from cities the team seeded. | **Decided 2026-11-24:** geocoding only. When Open-Meteo is down it throws `UpstreamException` (Figma S2 error state). No fallback to the stored list |
 | C3 | Where are the last used profile and the theme kept? | **A small JSON settings file in `%LOCALAPPDATA%\ClimaPulse`:** no schema change. **New columns on `UserProfile`:** schema change, needs team approval. | Settings file |
 
 Until the team answers, the draft follows the recommendation in each row.
@@ -666,7 +669,7 @@ If URL 3 returns `"error": true`, use the max and min fallback from 14.3 and upd
 
 | SRD | Open-Meteo source | Notes |
 |---|---|---|
-| FR-01 search | Geocoding | Stored list as offline fallback (decision C2) |
+| FR-01 search | Geocoding | No offline fallback; throws `UpstreamException` (decision C2) |
 | FR-05 units | none | Always fetch metric units, convert in the UI |
 | FR-06, FR-18 live readings | Forecast `daily` + `current` | One call per city |
 | FR-07 history | Archive `daily` | Once per city, cached |

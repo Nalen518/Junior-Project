@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Version | 0.4.3 draft |
-| Date | 2026-11-21 |
+| Version | 0.4.4 draft |
+| Date | 2026-11-24 |
 | Project | ClimaPulse, Junior Project, group "Mendoan", UGM DTETI |
 | Status | For team review. Items marked **OPEN** need a team decision. |
 | Based on | Module 1 project brief and grading criteria, README, Modul 3 class diagram, Modul 4 database (`backend/Database/schema.sql`), design decisions recorded in the project docs |
@@ -130,7 +130,7 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 | ID | Requirement | Priority | Acceptance criteria |
 |---|---|---|---|
 | FR-10 | The system computes the z-score of a live reading against the matching baseline. | Must | For mean 28.0, standard deviation 1.5 and reading 33.0, the z-score is about 3.33. A standard deviation of 0 does not crash the system and yields no anomaly. |
-| FR-11 | The system assigns a severity tier from the z-score. | Must | Thresholds are configurable in one place. Proposed defaults are in OPEN-1. |
+| FR-11 | The system assigns a severity tier from the z-score. | Must | Thresholds are configurable in one place. Values are in OPEN-1. |
 | FR-12 | Temperature anomalies are supported first. | Must | The temperature strategy is complete and tested. |
 | FR-13 | Precipitation anomalies are supported. | Should | Precipitation strategy complete and tested, with the known limits of rain data documented (skewed distribution, many zero values). |
 | FR-14 | Wind speed anomalies are supported. | Could | Wind strategy added using the same strategy interface. |
@@ -279,11 +279,20 @@ Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` is not implemented yet. `
 
 ## 9. Open questions (team decisions needed)
 
-**OPEN-1: Tier thresholds and hysteresis.**
-Proposal: Normal below 2.0, Watch from 2.0, Warning from 3.0, Extreme from 4.0 (absolute z-score), and an event closes when the z-score falls below the opening threshold minus 0.25.
-- Pros: easy to explain, 2 sigma is a common "unusual" level, per-city threshold already exists in the schema.
-- Cons: weather is not perfectly normal, so rain in particular will not follow these numbers. Cold anomalies and hot anomalies need the sign decided (the schema stores only the tier and the z-score, so the sign of the z-score tells the direction).
-- Alternative: percentile-based tiers. More accurate for skewed data, more work and harder to explain.
+**OPEN-1: Tier thresholds and hysteresis. DECIDED 2026-11-24.**
+Normal below 2.0, Watch from 2.0, Warning from 3.0, Extreme from 4.0, all on the absolute z-score. An event closes when the absolute z-score falls below 2.0 - 0.25 = 1.75.
+- Events open at this global Watch threshold. The per-profile `alert_threshold_zscore` (FR-04) only decides which cards are highlighted for that user, because events belong to a city and metric, not to a profile.
+- The sign of the stored z-score tells the direction (hot or cold, wet or dry).
+- Why: easy to explain, and 2 sigma is a common "unusual" level. Accepted cost: rain is skewed, so its tiers are rough (FR-13). Percentile-based tiers were rejected as more work and harder to explain.
+
+**OPEN-10: Backend details. DECIDED 2026-11-24.**
+- Today's reading: the last refresh result per city is kept in memory by the backend. No schema change. After a restart the dashboard shows each city as not refreshed until the user presses Refresh (FR-17, FR-18).
+- Advisory on an event: `AnomalyEvent.advisory_id` stores the health advisory. The climate advisory is still shown on screen (FR-19).
+- Baselines: sample standard deviation (n - 1) of daily values, period 1995 to 2024 (FR-08).
+- Standard deviation of 0: the reading gets the status "zero variance" and no tier, never a fake Normal (FR-10).
+- Duplicate cities: adding a search result returns the stored city with the same Open-Meteo id, otherwise the same name and coordinates rounded to 2 decimals. No unique key is added to `City` (FR-02).
+- `UserProfile.is_active` is not used in v1. The column keeps its default of 1.
+- City search when Open-Meteo is down shows an error. There is no fallback to the stored city list (FR-01, contract decision C2).
 
 **OPEN-2: Which metrics ship first.**
 Recommendation: temperature as Must, precipitation as Should, wind as Could (earlier design notes say rain and flash drought are much harder than temperature).
@@ -324,5 +333,6 @@ Module 1 says groups have at most three members, but the group has four. Confirm
 | 0.3 | 2026-11-16 | Database changed from SQLite to PostgreSQL (Npgsql). Connection string from `CLIMAPULSE_DB_CONNECTION` |
 | 0.4 | 2026-11-16 | UI changed from WPF with Blazor Hybrid to Windows Forms (Blazor and WPF not allowed). WebView2 requirement removed. OPEN-9 (charts) added |
 | 0.4.3 | 2026-11-21 | English only for v1 (UI-5, FR-05, FR-19, A-3, OPEN-6). Dark theme moved to Won't (FR-21). UI-1 checked in the built app, no 1024 x 640 mockup |
+| 0.4.4 | 2026-11-24 | OPEN-1 decided (tiers 2, 3, 4, close below 1.75, global threshold opens events). OPEN-10 added and decided (backend details) |
 | 0.4.2 | 2026-11-21 | OPEN-9 decided: charts drawn by hand with `Graphics`, no chart library. Figma Set A (sidebar) is the final design |
 | 0.4.1 | 2026-11-16 | Advisory uniqueness now includes category, so health and climate advisories can share a version number |
