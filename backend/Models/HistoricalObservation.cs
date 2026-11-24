@@ -9,7 +9,7 @@ public class HistoricalObservation
     public int CityId { get; set; }
     public MetricType MetricType { get; set; }
 
-    /// <summary>UTC, hourly grain.</summary>
+    /// <summary>Daily grain: the city's local date as a 00:00Z label (see DbMapping).</summary>
     public DateTime ObservedAt { get; set; }
 
     public double Value { get; set; }
