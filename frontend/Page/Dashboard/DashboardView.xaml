@@ -67,9 +67,11 @@
             </StackPanel>
         </Grid>
 
+        <StackPanel Grid.Row="2">
+        <controls:BaselineImportPanel x:Name="BaselineImport" Margin="0,0,0,8" />
+
         <Border
             x:Name="ErrorBanner"
-            Grid.Row="2"
             Padding="12"
             Background="#FFF1F1"
             BorderBrush="#E45A5A"
@@ -80,6 +82,7 @@
             <Grid>
                 <StackPanel>
                     <TextBlock
+                        x:Name="ErrorTitleText"
                         FontSize="13"
                         FontWeight="SemiBold"
                         Foreground="#B42318"
@@ -101,21 +104,36 @@
                     Content="Try again" />
             </Grid>
         </Border>
+        </StackPanel>
 
         <Grid Grid.Row="4">
             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                 <Button
+                    x:Name="AllFilterButton"
                     Background="#E4F3F7"
                     BorderBrush="#07566B"
+                    Click="MetricFilter_Click"
                     Content="All metrics"
                     Foreground="#07566B"
                     Style="{StaticResource FilterButtonStyle}" />
 
-                <Button Content="Temperature" Style="{StaticResource FilterButtonStyle}" />
+                <Button
+                    x:Name="TemperatureFilterButton"
+                    Click="MetricFilter_Click"
+                    Content="Temperature"
+                    Style="{StaticResource FilterButtonStyle}" />
 
-                <Button Content="Rain" Style="{StaticResource FilterButtonStyle}" />
+                <Button
+                    x:Name="RainFilterButton"
+                    Click="MetricFilter_Click"
+                    Content="Rain"
+                    Style="{StaticResource FilterButtonStyle}" />
 
-                <Button Content="Wind" Style="{StaticResource FilterButtonStyle}" />
+                <Button
+                    x:Name="WindFilterButton"
+                    Click="MetricFilter_Click"
+                    Content="Wind"
+                    Style="{StaticResource FilterButtonStyle}" />
             </StackPanel>
 
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
@@ -175,14 +193,17 @@
                         <DataTemplate>
                             <controls:CityCard
                                 Margin="0,0,14,14"
+                                ActionClicked="CityCard_ActionClicked"
+                                ActionText="{Binding ActionText}"
                                 CityClicked="CityCard_Click"
                                 CityName="{Binding CityName}"
                                 Entry="{Binding Entry}"
-                                FooterText="Waiting for baseline data"
+                                FooterText="{Binding FooterText}"
                                 Location="{Binding Location}"
-                                PrimaryText="Baseline not ready"
-                                SecondaryText="Historical data is needed before ClimaPulse can calculate an anomaly."
-                                Tier="Watch" />
+                                PrimaryText="{Binding PrimaryText}"
+                                SecondaryText="{Binding SecondaryText}"
+                                Tier="{Binding Tier}"
+                                ZScore="{Binding ZScore}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

@@ -11,6 +11,7 @@ public partial class SettingsView : UserControl
     private ProfileDto _profile;
     private readonly IProfileService _profileService;
     private readonly IWatchlistService _watchlistService;
+    private readonly IBaselineService _baselineService;
     private readonly Action<ProfileDto> _profileUpdated;
     private readonly Func<Task> _switchProfile;
 
@@ -18,6 +19,7 @@ public partial class SettingsView : UserControl
         ProfileDto profile,
         IProfileService profileService,
         IWatchlistService watchlistService,
+        IBaselineService baselineService,
         Action<ProfileDto> profileUpdated,
         Func<Task> switchProfile
     )
@@ -25,6 +27,7 @@ public partial class SettingsView : UserControl
         _profile = profile;
         _profileService = profileService;
         _watchlistService = watchlistService;
+        _baselineService = baselineService;
         _profileUpdated = profileUpdated;
         _switchProfile = switchProfile;
 
@@ -65,6 +68,56 @@ public partial class SettingsView : UserControl
         catch
         {
             CityCountText.Text = "City count is unavailable.";
+        }
+    }
+
+    /// <summary>One city at a time (FR-07 to FR-09). A refused or failed city is skipped.</summary>
+    private async void RefreshBaselinesButton_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshBaselinesButton.IsEnabled = false;
+        BaselineErrorText.Text = string.Empty;
+
+        try
+        {
+            var entries = await _watchlistService.ListAsync(_profile.Id);
+            var errors = new List<string>();
+
+            BaselineProgress.Value = 0;
+            BaselineProgress.Visibility = Visibility.Visible;
+
+            for (var index = 0; index < entries.Count; index++)
+            {
+                var city = entries[index].City;
+                var done = index;
+                BaselineStatusText.Text = $"Refreshing {index + 1} of {entries.Count} cities · {city.Name}";
+
+                // Created on the UI thread; overall progress across all cities.
+                var progress = new Progress<int>(percent =>
+                    BaselineProgress.Value = (done * 100d + percent) / entries.Count
+                );
+
+                try
+                {
+                    await _baselineService.RefreshAsync(city.Id, progress);
+                }
+                catch (ClimaPulseException ex)
+                {
+                    errors.Add($"{city.Name}: {ex.Message}");
+                }
+            }
+
+            BaselineProgress.Value = 100;
+            BaselineStatusText.Text =
+                $"Baselines refreshed for {entries.Count - errors.Count} of {entries.Count} cities.";
+            BaselineErrorText.Text = string.Join(Environment.NewLine, errors);
+        }
+        catch (ClimaPulseException ex)
+        {
+            BaselineErrorText.Text = ex.Message;
+        }
+        finally
+        {
+            RefreshBaselinesButton.IsEnabled = true;
         }
     }
 

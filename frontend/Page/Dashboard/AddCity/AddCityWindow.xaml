@@ -1,6 +1,7 @@
 <Window x:Class="ClimaPulse.Desktop.Page.Dashboard.AddCity.AddCityWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:ClimaPulse.Desktop.Controls"
         Title="Add a city"
         Width="680"
         Height="520"
@@ -225,6 +226,17 @@
                                 Click="SearchButton_Click" />
                     </StackPanel>
                 </Border>
+
+                <StackPanel x:Name="ImportOverlay"
+                            Background="White"
+                            Visibility="Collapsed">
+                    <controls:BaselineImportPanel x:Name="BaselineImport" />
+
+                    <Button Content="Continue"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Click="ContinueButton_Click" />
+                </StackPanel>
             </Grid>
 
             <TextBlock x:Name="AlreadyAddedText"

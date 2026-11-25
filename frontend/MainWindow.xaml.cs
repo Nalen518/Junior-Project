@@ -13,6 +13,9 @@ public partial class MainWindow : Window
     private readonly IWatchlistService _watchlistService;
     private readonly ICityService _cityService;
     private readonly IEventLedgerService _eventLedgerService;
+    private readonly IDashboardService _dashboardService;
+    private readonly IMonitoringService _monitoringService;
+    private readonly IBaselineService _baselineService;
     private readonly Func<Task> _switchProfile;
 
     public MainWindow(
@@ -21,6 +24,9 @@ public partial class MainWindow : Window
         ICityService cityService,
         IWatchlistService watchlistService,
         IEventLedgerService eventLedgerService,
+        IDashboardService dashboardService,
+        IMonitoringService monitoringService,
+        IBaselineService baselineService,
         Func<Task> switchProfile
     )
     {
@@ -29,6 +35,9 @@ public partial class MainWindow : Window
         _cityService = cityService;
         _watchlistService = watchlistService;
         _eventLedgerService = eventLedgerService;
+        _dashboardService = dashboardService;
+        _monitoringService = monitoringService;
+        _baselineService = baselineService;
         _switchProfile = switchProfile;
 
         InitializeComponent();
@@ -60,6 +69,9 @@ public partial class MainWindow : Window
             _profile,
             _cityService,
             _watchlistService,
+            _dashboardService,
+            _monitoringService,
+            _baselineService,
             ShowCityDetail
         );
         SetSelectedButton(DashboardButton);
@@ -81,6 +93,7 @@ public partial class MainWindow : Window
             _profile,
             _profileService,
             _watchlistService,
+            _baselineService,
             UpdateProfile,
             _switchProfile
         );
@@ -112,15 +125,17 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ShowCityDetail(WatchlistEntryDto entry)
+    private void ShowCityDetail(DashboardCityDto city)
     {
-        PageTitleText.Text = entry.City.Name;
+        PageTitleText.Text = city.City.Name;
 
         PageContent.Content = new CityDetailView(
             _profile,
-            entry,
+            city,
             _watchlistService,
             _eventLedgerService,
+            _monitoringService,
+            _baselineService,
             ShowDashboard
         );
     }

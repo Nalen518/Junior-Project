@@ -5,55 +5,93 @@ using System.Windows.Controls;
 using ClimaPulse.Contracts;
 using ClimaPulse.Desktop.Formatting;
 using ClimaPulse.Desktop.Page.Dashboard.CityDetail.RemoveCity;
+using ClimaPulse.Desktop.Ui;
+using ClimaPulse.Enums;
 
 namespace ClimaPulse.Desktop.Page.Dashboard.CityDetail;
 
 public partial class CityDetailView : UserControl
 {
     private readonly ProfileDto _profile;
-    private WatchlistEntryDto _entry;
+    private readonly CityDto _city;
     private readonly IWatchlistService _watchlistService;
     private readonly IEventLedgerService _eventLedgerService;
+    private readonly IMonitoringService _monitoringService;
+    private readonly IBaselineService _baselineService;
     private readonly Action _goBack;
+
+    private IReadOnlyList<MetricReadingDto> _metrics;
+    private DateTime? _refreshedAt;
+    private MetricType _metric = MetricType.Temperature;
 
     private ObservableCollection<EventRow> Events { get; } = [];
 
     public CityDetailView(
         ProfileDto profile,
-        WatchlistEntryDto entry,
+        DashboardCityDto city,
         IWatchlistService watchlistService,
         IEventLedgerService eventLedgerService,
+        IMonitoringService monitoringService,
+        IBaselineService baselineService,
         Action goBack
     )
     {
         _profile = profile;
-        _entry = entry;
+        _city = city.City;
+        _metrics = city.Metrics;
+        _refreshedAt = city.LastRefreshedAt;
         _watchlistService = watchlistService;
         _eventLedgerService = eventLedgerService;
+        _monitoringService = monitoringService;
+        _baselineService = baselineService;
         _goBack = goBack;
 
         InitializeComponent();
 
-        CityNameText.Text = _entry.City.Name;
-        CityLocationText.Text = FormatLocation(_entry.City);
-        EventsHeadingText.Text = $"Past events in {_entry.City.Name}";
+        CityNameText.Text = _city.Name;
+        CityLocationText.Text = FormatLocation(_city);
+        EventsHeadingText.Text = $"Past events in {_city.Name}";
 
-        ThresholdTextBox.Text = _entry.AlertThresholdZScore.ToString(
+        ThresholdTextBox.Text = city.AlertThresholdZScore.ToString(
             "0.0",
             CultureInfo.InvariantCulture
         );
 
-        NotesTextBox.Text = _entry.Notes ?? string.Empty;
-
         EventsList.ItemsSource = Events;
-        SetPreviewMetric("Temperature");
 
         Loaded += CityDetailView_Loaded;
     }
 
     private async void CityDetailView_Loaded(object sender, RoutedEventArgs e)
     {
+        await LoadNotesAsync();
+        await ShowMetricAsync(_metric);
         await LoadEventsAsync();
+    }
+
+    /// <summary>
+    /// DashboardCityDto has no note, so read it from the watchlist entry. Save stays off until
+    /// this succeeds: saving an unloaded note would send null and clear the stored one.
+    /// </summary>
+    private async Task LoadNotesAsync()
+    {
+        NotesTextBox.IsEnabled = false;
+
+        try
+        {
+            var entries = await _watchlistService.ListAsync(_profile.Id);
+
+            NotesTextBox.Text =
+                entries.FirstOrDefault(entry => entry.City.Id == _city.Id)?.Notes ?? string.Empty;
+
+            NotesTextBox.IsEnabled = true;
+            SaveSettingsButton.IsEnabled = true;
+        }
+        catch (ClimaPulseException ex)
+        {
+            SettingsMessageText.Foreground = System.Windows.Media.Brushes.IndianRed;
+            SettingsMessageText.Text = ex.Message;
+        }
     }
 
     private async Task LoadEventsAsync()
@@ -61,7 +99,7 @@ public partial class CityDetailView : UserControl
         try
         {
             var page = await _eventLedgerService.ListAsync(
-                new EventQuery(CityId: _entry.City.Id),
+                new EventQuery(CityId: _city.Id),
                 page: 1,
                 pageSize: 5
             );
@@ -88,80 +126,143 @@ public partial class CityDetailView : UserControl
         }
     }
 
-    private void TemperatureButton_Click(object sender, RoutedEventArgs e)
+    private async void TemperatureButton_Click(object sender, RoutedEventArgs e)
     {
-        SetPreviewMetric("Temperature");
+        await ShowMetricAsync(MetricType.Temperature);
     }
 
-    private void RainButton_Click(object sender, RoutedEventArgs e)
+    private async void RainButton_Click(object sender, RoutedEventArgs e)
     {
-        SetPreviewMetric("Rain");
+        await ShowMetricAsync(MetricType.Precipitation);
     }
 
-    private void WindButton_Click(object sender, RoutedEventArgs e)
+    private async void WindButton_Click(object sender, RoutedEventArgs e)
     {
-        SetPreviewMetric("Wind");
+        await ShowMetricAsync(MetricType.WindSpeed);
     }
 
-    private void SetPreviewMetric(string metric)
+    private async void RefreshButton_Click(object sender, RoutedEventArgs e)
     {
-        BellCurve.Metric = metric;
-        TrendChart.Metric = metric;
+        RefreshButton.IsEnabled = false;
 
-        if (metric == "Temperature")
+        try
         {
-            PreviewValueText.Text = TemperatureDisplay.Format(
-                36.9,
-                _profile.PreferredTemperatureUnit
-            );
+            var result = await _monitoringService.RefreshCityAsync(_city.Id);
 
-            NormalValueText.Text = TemperatureDisplay.Format(
-                32.6,
-                _profile.PreferredTemperatureUnit
-            );
+            _metrics = result.Metrics;
+            _refreshedAt = result.RefreshedAt;
 
-            StandardDeviationText.Text = TemperatureDisplay.FormatDifference(
-                1.0,
-                _profile.PreferredTemperatureUnit
-            );
-
-            ZScoreText.Text = "+4.3";
-
-            PreviewExplanationText.Text = "Far hotter than usual for this time of year.";
-
-            TrendDescriptionText.Text = "Sample daily mean-temperature preview.";
-
-            SetActiveMetricButton(TemperatureButton);
-
-            return;
+            await ShowMetricAsync(_metric);
+            await LoadEventsAsync();
         }
-
-        if (metric == "Rain")
+        catch (NotFoundException ex)
         {
-            PreviewValueText.Text = "41.2 mm";
-            NormalValueText.Text = "9.8 mm";
-            StandardDeviationText.Text = "8.7 mm";
-            ZScoreText.Text = "+3.6";
-
-            PreviewExplanationText.Text = "Much wetter than usual for this time of year.";
-
-            TrendDescriptionText.Text = "Sample daily rainfall preview. The final bar is today.";
-
-            SetActiveMetricButton(RainButton);
-
-            return;
+            ServiceErrorPresenter.Show(ex, "City not found");
+            _goBack();
         }
+        catch (ClimaPulseException ex)
+        {
+            // Keep the old reading on screen (contract 7).
+            ServiceErrorPresenter.Show(ex, $"Could not refresh {_city.Name}");
+        }
+        finally
+        {
+            RefreshButton.IsEnabled = true;
+        }
+    }
 
-        PreviewValueText.Text = "20.1 km/h";
-        NormalValueText.Text = "12.4 km/h";
-        StandardDeviationText.Text = "3.7 km/h";
-        ZScoreText.Text = "+2.1";
+    /// <summary>Shows what the services returned for one metric. Never scores in the UI.</summary>
+    private async Task ShowMetricAsync(MetricType metric)
+    {
+        _metric = metric;
 
-        PreviewExplanationText.Text = "Wind is stronger than normal for this time of year.";
+        SetActiveMetricButton(
+            metric switch
+            {
+                MetricType.Precipitation => RainButton,
+                MetricType.WindSpeed => WindButton,
+                _ => TemperatureButton,
+            }
+        );
 
-        TrendDescriptionText.Text = "Sample daily maximum wind-speed preview.";
+        var unit = _profile.PreferredTemperatureUnit;
+        var reading = _metrics.FirstOrDefault(item => item.Metric == metric);
+        var month = MetricDisplay.CityMonth(reading?.ObservedAt ?? DateTime.UtcNow, _city);
+        var monthName = MetricDisplay.MonthName(month);
 
-        SetActiveMetricButton(WindButton);
+        TodaySubtitleText.Text = _refreshedAt is { } time
+            ? $"Refreshed {time.ToLocalTime().ToString("d MMM HH:mm", CultureInfo.InvariantCulture)}"
+            : "Not refreshed yet";
+
+        TodayValueText.Text = reading?.ObservedValue is { } value
+            ? MetricDisplay.Value(metric, value, unit)
+            : "—";
+
+        NormalValueText.Text = reading?.BaselineMean is { } mean
+            ? MetricDisplay.Value(metric, mean, unit)
+            : "—";
+
+        StandardDeviationText.Text = reading?.BaselineStdDev is { } spread
+            ? MetricDisplay.Spread(metric, spread, unit)
+            : "—";
+
+        ZScoreText.Text = reading?.ZScore is { } z ? MetricDisplay.ZScore(z) : "—";
+
+        BellCurve.Metric = MetricDisplay.Name(metric);
+        BellCurve.ZScore = reading?.ZScore;
+
+        TodayExplanationText.Text = _refreshedAt is null
+            ? "Not refreshed yet. Press Refresh to compare today with the normal."
+            : reading?.DataStatus switch
+            {
+                DataStatus.Ok when reading is { Tier: { } tier, ZScore: { } score } =>
+                    MetricDisplay.Explanation(metric, tier, score, monthName),
+                DataStatus.NoBaseline => "Baseline not ready. Build it from the dashboard card.",
+                DataStatus.ZeroVariance => "Not enough variation to score.",
+                _ => "No data for today.",
+            };
+
+        ShowAdvice(reading?.Advisories ?? []);
+
+        await LoadBaselineNoteAsync(metric, month, monthName);
+    }
+
+    private void ShowAdvice(IReadOnlyList<AdvisoryDto> advisories)
+    {
+        const string none = "No advice. Today is within the normal range.";
+
+        var health = advisories.Where(item => item.Category == AdvisoryCategory.Health).ToList();
+        var climate = advisories.Where(item => item.Category == AdvisoryCategory.Climate).ToList();
+
+        HealthAdviceList.ItemsSource = health;
+        ClimateAdviceList.ItemsSource = climate;
+        HealthAdviceEmptyText.Text = health.Count == 0 ? none : string.Empty;
+        ClimateAdviceEmptyText.Text = climate.Count == 0 ? none : string.Empty;
+    }
+
+    private async Task LoadBaselineNoteAsync(MetricType metric, int month, string monthName)
+    {
+        try
+        {
+            var baselines = await _baselineService.ListAsync(_city.Id, metric);
+
+            if (_metric != metric)
+            {
+                return; // the user switched tab while this was loading
+            }
+
+            var baseline = baselines.FirstOrDefault(item => item.Month == month);
+
+            BaselineNoteText.Text = baseline is null
+                ? $"Baseline: not built yet for {monthName}."
+                : $"Baseline: {monthName} daily {MetricDisplay.DailyKind(metric)}, "
+                    + $"{baseline.BaselineStartYear}–{baseline.BaselineEndYear} ({baseline.SampleSize} days) · "
+                    + $"computed {baseline.ComputedAt.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture)}";
+        }
+        catch (ClimaPulseException ex)
+        {
+            BaselineNoteText.Text = ex.Message;
+        }
     }
 
     private void SetActiveMetricButton(Button activeButton)
@@ -203,9 +304,9 @@ public partial class CityDetailView : UserControl
 
         try
         {
-            _entry = await _watchlistService.UpdateAsync(
+            await _watchlistService.UpdateAsync(
                 _profile.Id,
-                _entry.City.Id,
+                _city.Id,
                 new UpdateWatchlistRequest(
                     threshold,
                     NotesTextBox.Text.Trim() is { Length: > 0 } note ? note : null
@@ -231,7 +332,7 @@ public partial class CityDetailView : UserControl
 
     private async void RemoveCityButton_Click(object sender, RoutedEventArgs e)
     {
-        var removeWindow = new RemoveCityWindow(_entry.City.Name)
+        var removeWindow = new RemoveCityWindow(_city.Name)
         {
             Owner = Window.GetWindow(this),
         };
@@ -243,7 +344,7 @@ public partial class CityDetailView : UserControl
 
         try
         {
-            await _watchlistService.RemoveAsync(_profile.Id, _entry.City.Id);
+            await _watchlistService.RemoveAsync(_profile.Id, _city.Id);
 
             _goBack();
         }
