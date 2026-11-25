@@ -1,0 +1,387 @@
+<UserControl
+    x:Class="ClimaPulse.Desktop.Page.Dashboard.CityDetail.CityDetailView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:charts="clr-namespace:ClimaPulse.Desktop.Controls.Charts"
+    Background="#F5F8FA">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <StackPanel>
+                    <Button
+                        Padding="0"
+                        HorizontalAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Click="BackButton_Click"
+                        Content="← Dashboard"
+                        Foreground="#07566B" />
+
+                    <TextBlock
+                        x:Name="CityNameText"
+                        Margin="0,14,0,0"
+                        FontSize="25"
+                        FontWeight="SemiBold"
+                        Foreground="#1F2933" />
+
+                    <TextBlock
+                        x:Name="CityLocationText"
+                        Margin="0,5,0,0"
+                        FontSize="12"
+                        Foreground="#65737E" />
+                </StackPanel>
+
+                <StackPanel
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <Button
+                        x:Name="TemperatureButton"
+                        Padding="11,5"
+                        Background="#E4F3F7"
+                        BorderBrush="#07566B"
+                        Click="TemperatureButton_Click"
+                        Content="Temperature"
+                        Foreground="#07566B" />
+
+                    <Button
+                        x:Name="RainButton"
+                        Margin="7,0,0,0"
+                        Padding="11,5"
+                        Click="RainButton_Click"
+                        Content="Rain" />
+
+                    <Button
+                        x:Name="WindButton"
+                        Margin="7,0,0,0"
+                        Padding="11,5"
+                        Click="WindButton_Click"
+                        Content="Wind" />
+
+                    <Button
+                        Margin="18,0,0,0"
+                        Padding="11,5"
+                        Content="Refresh"
+                        IsEnabled="False"
+                        ToolTip="City refresh needs IMonitoringService, which is not implemented yet." />
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="275" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+
+                    <Border
+                        Padding="22"
+                        Background="White"
+                        BorderBrush="#D9E2E8"
+                        BorderThickness="1"
+                        CornerRadius="9">
+
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933"
+                                Text="Today vs the 30-year normal" />
+
+                            <TextBlock
+                                Margin="0,6,0,0"
+                                FontSize="10"
+                                Foreground="#82919C"
+                                Text="Preview data · live monitoring is not connected yet." />
+
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="90" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel>
+                                    <TextBlock
+                                        x:Name="PreviewValueText"
+                                        FontSize="25"
+                                        FontWeight="SemiBold"
+                                        Foreground="#1F2933" />
+
+                                    <TextBlock
+                                        x:Name="PreviewExplanationText"
+                                        Margin="0,6,0,0"
+                                        FontSize="11"
+                                        Foreground="#65737E"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <Border
+                                    Grid.Column="1"
+                                    Margin="6,0,0,0"
+                                    Padding="9"
+                                    Background="#F1F5F7"
+                                    CornerRadius="5">
+                                    <StackPanel>
+                                        <TextBlock
+                                            FontSize="9"
+                                            Foreground="#65737E"
+                                            Text="Normal" />
+
+                                        <TextBlock
+                                            x:Name="NormalValueText"
+                                            Margin="0,3,0,0"
+                                            FontSize="12"
+                                            FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border
+                                    Grid.Column="2"
+                                    Margin="6,0,0,0"
+                                    Padding="9"
+                                    Background="#F1F5F7"
+                                    CornerRadius="5">
+                                    <StackPanel>
+                                        <TextBlock
+                                            FontSize="9"
+                                            Foreground="#65737E"
+                                            Text="Std deviation" />
+
+                                        <TextBlock
+                                            x:Name="StandardDeviationText"
+                                            Margin="0,3,0,0"
+                                            FontSize="12"
+                                            FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border
+                                    Grid.Column="3"
+                                    Margin="6,0,0,0"
+                                    Padding="9"
+                                    Background="#F1F5F7"
+                                    CornerRadius="5">
+                                    <StackPanel>
+                                        <TextBlock
+                                            FontSize="9"
+                                            Foreground="#65737E"
+                                            Text="z-score" />
+
+                                        <TextBlock
+                                            x:Name="ZScoreText"
+                                            Margin="0,3,0,0"
+                                            FontSize="12"
+                                            FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <charts:BellCurveChart
+                                x:Name="BellCurve"
+                                Height="155"
+                                Margin="0,16,0,0"
+                                Metric="Temperature" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Margin="0,14,0,0"
+                        Padding="22"
+                        Background="White"
+                        BorderBrush="#D9E2E8"
+                        BorderThickness="1"
+                        CornerRadius="9">
+
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933"
+                                Text="Last 14 days" />
+
+                            <TextBlock
+                                x:Name="TrendDescriptionText"
+                                Margin="0,6,0,0"
+                                FontSize="10"
+                                Foreground="#82919C" />
+
+                            <charts:TrendChart
+                                x:Name="TrendChart"
+                                Height="175"
+                                Margin="0,12,0,0"
+                                Metric="Temperature" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <Border
+                        Padding="18"
+                        Background="White"
+                        BorderBrush="#D9E2E8"
+                        BorderThickness="1"
+                        CornerRadius="9">
+
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933"
+                                Text="Alert threshold" />
+
+                            <TextBlock
+                                Margin="0,15,0,0"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933"
+                                Text="Alert me when z is at least" />
+
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="65" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox
+                                    x:Name="ThresholdTextBox"
+                                    Padding="8,5"
+                                    FontSize="12" />
+
+                                <Button
+                                    Grid.Column="2"
+                                    Padding="8,5"
+                                    Click="SaveSettingsButton_Click"
+                                    Content="Save" />
+                            </Grid>
+
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                FontSize="10"
+                                Foreground="#82919C"
+                                Text="Default: 2.0. Must be above 0." />
+
+                            <TextBlock
+                                Margin="0,15,0,0"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933"
+                                Text="Note (optional)" />
+
+                            <TextBox
+                                x:Name="NotesTextBox"
+                                Margin="0,6,0,0"
+                                Padding="8,5"
+                                FontSize="12"
+                                MaxLength="500" />
+
+                            <TextBlock
+                                x:Name="SettingsMessageText"
+                                Margin="0,8,0,0"
+                                FontSize="10"
+                                Foreground="#07566B"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Margin="0,14,0,0"
+                        Padding="18"
+                        Background="White"
+                        BorderBrush="#D9E2E8"
+                        BorderThickness="1"
+                        CornerRadius="9">
+
+                        <StackPanel>
+                            <TextBlock
+                                x:Name="EventsHeadingText"
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933" />
+
+                            <TextBlock
+                                x:Name="EventsEmptyText"
+                                Margin="0,14,0,0"
+                                FontSize="11"
+                                Foreground="#65737E"
+                                Text="Loading past events…" />
+
+                            <ItemsControl x:Name="EventsList" Margin="0,10,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Margin="0,0,0,8"
+                                            Padding="8"
+                                            Background="#F8FAFB"
+                                            CornerRadius="5">
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel>
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="#1F2933"
+                                                        Text="{Binding Tier}" />
+
+                                                    <TextBlock
+                                                        Margin="0,3,0,0"
+                                                        FontSize="10"
+                                                        Foreground="#65737E"
+                                                        Text="{Binding DateRange}" />
+                                                </StackPanel>
+
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="10"
+                                                    Foreground="#07566B"
+                                                    Text="{Binding Status}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Button
+                                Margin="0,10,0,0"
+                                Padding="0"
+                                HorizontalAlignment="Left"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Content="Open in Anomaly Ledger"
+                                Foreground="#07566B"
+                                IsEnabled="False"
+                                ToolTip="Ledger navigation is the next implementation step." />
+
+                            <Button
+                                Margin="0,12,0,0"
+                                Padding="0"
+                                HorizontalAlignment="Left"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Click="RemoveCityButton_Click"
+                                Content="Remove from watchlist"
+                                Foreground="#B42318" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

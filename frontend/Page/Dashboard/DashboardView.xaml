@@ -1,0 +1,199 @@
+<UserControl
+    x:Class="ClimaPulse.Desktop.Page.DashboardView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:ClimaPulse.Desktop.Controls"
+    Background="#F5F8FA">
+
+    <UserControl.Resources>
+        <Style x:Key="FilterButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="0,0,7,0" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#B5C5CC" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="26">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="14" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <StackPanel>
+                <TextBlock
+                    FontSize="24"
+                    FontWeight="SemiBold"
+                    Foreground="#1F2933"
+                    Text="Dashboard" />
+
+                <TextBlock
+                    x:Name="CitySummaryText"
+                    Margin="0,5,0,0"
+                    FontSize="12"
+                    Foreground="#65737E" />
+            </StackPanel>
+
+            <StackPanel HorizontalAlignment="Right">
+                <TextBlock
+                    HorizontalAlignment="Right"
+                    FontSize="10"
+                    Foreground="#82919C"
+                    Text="LOCAL DATA" />
+
+                <TextBlock
+                    x:Name="UpdatedText"
+                    Margin="0,4,0,0"
+                    HorizontalAlignment="Right"
+                    FontSize="11"
+                    Foreground="#65737E" />
+            </StackPanel>
+        </Grid>
+
+        <Border
+            x:Name="ErrorBanner"
+            Grid.Row="2"
+            Padding="12"
+            Background="#FFF1F1"
+            BorderBrush="#E45A5A"
+            BorderThickness="1"
+            CornerRadius="6"
+            Visibility="Collapsed">
+
+            <Grid>
+                <StackPanel>
+                    <TextBlock
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Foreground="#B42318"
+                        Text="Dashboard data is unavailable" />
+
+                    <TextBlock
+                        x:Name="ErrorText"
+                        Margin="0,3,0,0"
+                        FontSize="11"
+                        Foreground="#7A271A"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Button
+                    Padding="10,5"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Click="RefreshButton_Click"
+                    Content="Try again" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="4">
+            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                <Button
+                    Background="#E4F3F7"
+                    BorderBrush="#07566B"
+                    Content="All metrics"
+                    Foreground="#07566B"
+                    Style="{StaticResource FilterButtonStyle}" />
+
+                <Button Content="Temperature" Style="{StaticResource FilterButtonStyle}" />
+
+                <Button Content="Rain" Style="{StaticResource FilterButtonStyle}" />
+
+                <Button Content="Wind" Style="{StaticResource FilterButtonStyle}" />
+            </StackPanel>
+
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button
+                    x:Name="RefreshButton"
+                    Click="RefreshButton_Click"
+                    Content="Refresh all"
+                    Style="{StaticResource ActionButtonStyle}" />
+
+                <Button
+                    x:Name="AddCityButton"
+                    Background="#07566B"
+                    BorderThickness="0"
+                    Click="AddCityButton_Click"
+                    Content="Add city"
+                    Foreground="White"
+                    Style="{StaticResource ActionButtonStyle}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="6">
+            <WrapPanel
+                x:Name="LoadingPanel"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Visibility="Visible">
+                <controls:LoadingSkeleton Width="255" Margin="0,0,14,14" />
+
+                <controls:LoadingSkeleton Width="255" Margin="0,0,14,14" />
+
+                <controls:LoadingSkeleton Width="255" Margin="0,0,14,14" />
+
+                <controls:LoadingSkeleton Width="255" Margin="0,0,14,14" />
+            </WrapPanel>
+
+            <controls:StateMessage
+                x:Name="EmptyPanel"
+                Title="No cities on your watchlist"
+                Width="340"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Message="Add a city to begin comparing today's weather with its normal climate."
+                Visibility="Collapsed" />
+
+            <ScrollViewer
+                x:Name="CardsScrollViewer"
+                VerticalScrollBarVisibility="Auto"
+                Visibility="Collapsed">
+                <ItemsControl x:Name="CardsList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:CityCard
+                                Margin="0,0,14,14"
+                                CityClicked="CityCard_Click"
+                                CityName="{Binding CityName}"
+                                Entry="{Binding Entry}"
+                                FooterText="Waiting for baseline data"
+                                Location="{Binding Location}"
+                                PrimaryText="Baseline not ready"
+                                SecondaryText="Historical data is needed before ClimaPulse can calculate an anomaly."
+                                Tier="Watch" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+        <TextBlock
+            Grid.Row="7"
+            Margin="0,10,0,0"
+            FontSize="10"
+            Foreground="#82919C"
+            Text="Statistical anomalies compare each city's weather with its 30-year normal. Weather data: Open-Meteo." />
+    </Grid>
+</UserControl>

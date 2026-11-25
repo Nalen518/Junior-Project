@@ -1,0 +1,72 @@
+<UserControl
+    x:Class="ClimaPulse.Desktop.Controls.CityCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:ClimaPulse.Desktop.Controls"
+    x:Name="Root">
+
+    <Button
+        Padding="0"
+        Background="Transparent"
+        BorderThickness="0"
+        Click="CityCardButton_Click"
+        Cursor="Hand">
+
+        <Border
+            Width="255"
+            Height="205"
+            Padding="15"
+            Background="White"
+            BorderBrush="#D9E2E8"
+            BorderThickness="1"
+            CornerRadius="8">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <TextBlock
+                        FontSize="15"
+                        FontWeight="SemiBold"
+                        Foreground="#1F2933"
+                        Text="{Binding CityName, ElementName=Root}" />
+
+                    <controls:TierBadge HorizontalAlignment="Right" Tier="{Binding Tier, ElementName=Root}" />
+                </Grid>
+
+                <TextBlock
+                    Grid.Row="1"
+                    Margin="0,4,0,0"
+                    FontSize="11"
+                    Foreground="#65737E"
+                    Text="{Binding Location, ElementName=Root}" />
+
+                <StackPanel Grid.Row="2" Margin="0,15,0,0">
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Foreground="#1F2933"
+                        Text="{Binding PrimaryText, ElementName=Root}" />
+
+                    <TextBlock
+                        Margin="0,6,0,0"
+                        FontSize="11"
+                        Foreground="#65737E"
+                        Text="{Binding SecondaryText, ElementName=Root}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <TextBlock
+                    Grid.Row="3"
+                    FontSize="10"
+                    Foreground="#82919C"
+                    Text="{Binding FooterText, ElementName=Root}" />
+            </Grid>
+        </Border>
+    </Button>
+</UserControl>
