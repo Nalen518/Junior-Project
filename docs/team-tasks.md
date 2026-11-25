@@ -1,8 +1,8 @@
 # ClimaPulse: Team Tasks
 
-Last updated 2026-11-21. Owner of this file: Nalen (PM). Tick a box in your own PR when the task is merged.
+Last updated 2026-11-25. Owner of this file: Nalen (PM). Tick a box in your own PR when the task is merged.
 
-Sources: `docs/SRD.md` (0.4.3), `docs/api-contract.md`, `docs/references-desktop-architecture.md`, Figma file "Junpro" (Set A, the sidebar design, is final).
+Sources: `docs/SRD.md` (0.4.4), `docs/api-contract.md`, `docs/references-desktop-architecture.md`, Figma file "Junpro" (Set A, the sidebar design, is final).
 
 | Person | Role |
 |---|---|
@@ -40,15 +40,18 @@ Nalen's Contracts project blocks both Christa and Syauqi, so it comes first. Chr
 ## Nalen: software engineer and PM
 
 ### Week 1: unblock the team
-- [ ] Push and merge the local branches into `Development`, in order: `feat/modul9-oop`, `docs/charts-by-hand`, `fix/english-locale`, `docs/team-tasks`
-- [ ] Create `shared/ClimaPulse.Contracts`: the 8 interfaces, all DTOs, enums and the 5 exception types from `docs/api-contract.md`
-- [ ] Move `backend/Enums/*.cs` into the Contracts project (namespace stays `ClimaPulse.Enums`)
-- [ ] Add Contracts and the empty Windows Forms project `frontend/ClimaPulse.Desktop` to `ClimaPulse.slnx`
-- [ ] `frontend/Program.cs`: composition root with the `UseFakes` switch and the two crash handlers (architecture guide, step 3)
+- [x] Push and merge the local branches into `Development`, in order: `feat/modul9-oop`, `docs/charts-by-hand`, `fix/english-locale`, `docs/team-tasks`
+- [x] Create `shared/ClimaPulse.Contracts`: the 8 interfaces, all DTOs, enums and the 5 exception types from `docs/api-contract.md` (#10, built by Syauqi)
+- [x] Move `backend/Enums/*.cs` into the Contracts project (namespace stays `ClimaPulse.Enums`) (#10)
+- [x] Add Contracts to `ClimaPulse.slnx` (#10)
+- [ ] Add the empty Windows Forms project `frontend/ClimaPulse.Desktop` to `ClimaPulse.slnx`
+- [ ] `frontend/Program.cs`: composition root with the `UseFakes` switch and the two crash handlers (architecture guide, step 3). Create one `CityRefreshState` and pass it to the baseline, monitoring and dashboard services
+- [ ] Start-up check: call `DatabaseInitializer` in `Program.cs` and show Radit's S1 "database not reachable" screen with Retry when it fails (SRD OPEN-10)
 - [x] Delete the leftover `frontend/Components/Dashboard.razor` (done 2026-11-21, no Blazor left in the repo)
 
 ### Decisions to close
-- [ ] OPEN-1: tier thresholds (proposed Watch 2.0, Warning 3.0, Extreme 4.0) and the hysteresis margin (proposed 0.25). Syauqi needs this before the ledger logic
+- [x] OPEN-1: tiers Watch 2.0, Warning 3.0, Extreme 4.0; events close below 1.75 (#9)
+- [x] OPEN-10: backend details (in-memory last refresh, health advisory on events, n - 1 standard deviation, zero variance, duplicate cities, `is_active` unused) and contract C2 (#9)
 - [ ] OPEN-4: demo starts from `seed.sql` plus pre-downloaded baselines
 - [ ] OPEN-5: refresh only on button press, or also a timer
 - [ ] OPEN-8: confirm with the teaching assistant that a group of four is accepted
@@ -56,12 +59,15 @@ Nalen's Contracts project blocks both Christa and Syauqi, so it comes first. Chr
 
 ### Ongoing
 - [ ] Review every PR that touches `shared/ClimaPulse.Contracts`
-- [ ] Weekly module tasks (Modul 9 OOP evidence is done: polymorphism through `IAnomalyStrategy`, 4 passing tests)
+- [ ] Weekly module tasks (Modul 9 OOP evidence is done: polymorphism through `IAnomalyStrategy`, its 4 tests still pass)
+- [ ] Update `docs/project-checklist.md` and the SRD "known gaps" paragraph: `AnalyzeCityAsync` is replaced by `IMonitoringService.RefreshCityAsync` (#17), and Contracts and the services now exist
 - [ ] Keep `docs/SRD.md` and this file up to date
 
 ### Before the demo
-- [ ] Install PostgreSQL on the demo laptop and run `createdb climapulse`
+- [ ] Install PostgreSQL on the demo laptop and run `createdb climapulse` (the database tests also need `createdb climapulse_test` and `CLIMAPULSE_TEST_DB_CONNECTION`)
 - [ ] Switch `UseFakes` off and run the demo path: pick profile, add city, refresh, see badge, open city detail, open ledger, export CSV
+- [ ] Pre-download baselines for the demo cities, so the demo does not wait on Open-Meteo (OPEN-4)
+- [ ] Try the ledger export on Windows set to Indonesian regional settings (tests already check the `id-ID` culture)
 - [ ] Self-contained publish, zip, GitHub Release, run instructions in the README (NFR-16)
 - [ ] GitHub Page from `docs` on `main` (Module 1)
 
@@ -120,29 +126,36 @@ Build in this order. Use the fakes until Syauqi's services are ready.
 
 ## Syauqi: backend
 
-The database, repositories, strategies, z-score, tiers and `AdvisoryService` are done. What is left:
+All 8 contract services are written. #16 to #19 are open: merge them in order.
+
+### Repositories
+- [x] Ledger paging and counting in SQL, peak updates that never lower the tier, event by id (FR-23, FR-26) (#11)
+- [x] Duplicate-city lookup by Open-Meteo id or rounded coordinates (OPEN-10) (#11)
 
 ### Open-Meteo (`WeatherService`, the only class that calls it)
-- [ ] `FetchLiveAsync`: today's daily values for temperature, rain and wind (FR-06)
-- [ ] `FetchArchiveAsync`: 30 years of daily history, saved with `HistoricalObservationRepository.AddRange` (FR-07)
-- [ ] City search through the geocoding API (FR-01, contract C2)
-- [ ] Timeouts, empty answers and rate limits become `UpstreamException` with the city id. Numbers in URLs use `CultureInfo.InvariantCulture`
+- [x] `FetchTodayAsync` (was `FetchLiveAsync`): today's daily temperature and rain in the city's time zone (FR-06) (#12)
+- [x] `FetchArchiveAsync`: 1995 to 2024 daily history; `IBaselineService` stores it (FR-07) (#12)
+- [x] City search through the geocoding API (FR-01, contract C2) (#12)
+- [x] Timeouts, HTTP errors, rate limits and unreadable answers become `UpstreamException` with the city id. Numbers in URLs use `CultureInfo.InvariantCulture` (#12)
+- [ ] Log the reason of an HTTP 400 once the backend has a log file (marked `shortcut:` in `WeatherService`)
 
 ### Anomaly logic
-- [ ] `AnalyzeCityAsync`: evaluate each metric, then open, update or close `AnomalyEvent` rows with hysteresis (FR-22 to FR-25). Wait for OPEN-1
-- [ ] Monthly baselines from the stored history: mean, standard deviation, sample size, with progress (FR-08, FR-09)
-- [ ] `WindStrategy` only if time remains (FR-14, Could)
+- [ ] Hysteresis: `AnomalyDetectionService.DecideEvent` opens at 2.0, closes below 1.75, reopens on a sign flip (FR-22 to FR-25). `AnalyzeCityAsync` is removed (PR #17 open)
+- [ ] Monthly baselines from the stored history: mean, sample standard deviation, sample size, with progress (FR-08, FR-09) (PR #16 open)
+- [ ] `WindStrategy` only if time remains (FR-14, Could). Wind is not scored in v1
 
 ### Services behind the contract (all return DTOs, never models)
-- [ ] `IProfileService`, `ICityService`, `IWatchlistService`
-- [ ] `IDashboardService`, `IMonitoringService`, `IBaselineService`
-- [ ] `IAdvisoryService` (wraps the existing `AdvisoryService`)
-- [ ] `IEventLedgerService`: filter, page, export CSV and JSON with invariant numbers (FR-26, FR-27)
-- [ ] Database not reachable becomes a clear error the UI can show (matches Radit's new S1 screen)
+- [x] `IProfileService`, `IWatchlistService` (#13)
+- [x] `ICityService`, `IAdvisoryService` (#14)
+- [x] `IEventLedgerService`: filter, page, export CSV and JSON with invariant numbers (FR-26, FR-27) (#15)
+- [ ] `IBaselineService` (PR #16 open)
+- [ ] `IMonitoringService` (PR #17 open)
+- [ ] `IDashboardService` (PR #18 open)
+- [x] Database not reachable: decided as a start-up check in `Program.cs` (see Nalen's list), no contract change
 
 ### Tests
-- [ ] Unit tests for hysteresis and for baseline maths (NFR-13)
-- [ ] Service tests against a separate test database (`climapulse_test`)
+- [ ] Unit tests for hysteresis (PR #19 open) and for baseline maths (PR #16 open) (NFR-13)
+- [x] Service tests against `climapulse_test`, marked `Category=Database`. Run the rest with `dotnet test --filter Category!=Database` (#11 to #15)
 
 ---
 
@@ -151,6 +164,7 @@ The database, repositories, strategies, z-score, tiers and `AdvisoryService` are
 - Database schema and seed (PostgreSQL), 8 models, 7 repositories
 - `ZScoreCalculator`, `TemperatureStrategy`, `PrecipitationStrategy`, `AssignTier`, `AnomalyDetectionService.Evaluate`
 - `AdvisoryService` reading advisories from the database, English (`en-US`) defaults
-- Backend and test projects build; 4 unit tests pass
-- SRD 0.4.3, API contract, architecture guide, design references, class diagrams
+- `shared/ClimaPulse.Contracts` and the Profile, Watchlist, City, Advisory and Event Ledger services (#10 to #15)
+- In `Development`: 35 unit tests and 28 database tests pass, build has no warnings. With #16 to #19: 51 and 38
+- SRD 0.4.4 with OPEN-1 and OPEN-10 decided, API contract v2.2, architecture guide, design references, class diagrams (diagrams not yet updated for the services)
 - Figma Set A: S1 to S6 with loading, empty, error and the extra states added on 2026-11-21
