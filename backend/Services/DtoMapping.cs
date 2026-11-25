@@ -23,6 +23,10 @@ internal static class DtoMapping
     public static WatchlistEntryDto ToDto(this WatchlistEntry w, City city) => new(
         w.Id, w.ProfileId, city.ToDto(), w.AlertThresholdZScore, w.Notes, w.AddedAt);
 
+    public static BaselineDto ToDto(this Baseline b) => new(
+        b.Id, b.CityId, b.MetricType, b.Month, b.MeanValue, b.StdDevValue, b.SampleSize,
+        b.BaselineStartYear, b.BaselineEndYear, b.ComputedAt);
+
     public static AdvisoryDto ToDto(this Advisory a) => new(
         a.Id, a.MetricType, a.SeverityTier, a.Locale, a.Category, a.Title, a.Body, a.Version, a.EffectiveFrom);
 

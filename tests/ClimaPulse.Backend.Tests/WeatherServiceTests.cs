@@ -126,22 +126,6 @@ public class WeatherServiceTests
         await Assert.ThrowsAsync<UpstreamException>(() => service.SearchAsync("Yogyakarta"));
     }
 
-    /// <summary>Answers every request with a fixed response or exception, so no network is used.</summary>
-    private sealed class StubHandler : HttpMessageHandler
-    {
-        private readonly HttpStatusCode _status;
-        private readonly string _body = string.Empty;
-        private readonly Exception? _error;
-
-        public StubHandler(HttpStatusCode status, string body) => (_status, _body) = (status, body);
-        public StubHandler(Exception error) => _error = error;
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
-            _error is not null
-                ? Task.FromException<HttpResponseMessage>(_error)
-                : Task.FromResult(new HttpResponseMessage(_status) { Content = new StringContent(_body) });
-    }
-
     [Fact]
     public void ParseArchive_makes_one_row_per_day_and_metric_and_skips_nulls()
     {
