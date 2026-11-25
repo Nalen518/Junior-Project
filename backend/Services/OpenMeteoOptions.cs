@@ -13,6 +13,9 @@ public class OpenMeteoOptions
     /// <summary>Forecast API, used for current readings.</summary>
     public string ForecastBaseUrl { get; set; } = "https://api.open-meteo.com/v1/forecast";
 
+    /// <summary>Geocoding API, used for city search (FR-01).</summary>
+    public string GeocodingBaseUrl { get; set; } = "https://geocoding-api.open-meteo.com/v1/search";
+
     /// <summary>Historical (archive) API, used for the 30-year baseline data.</summary>
     public string ArchiveBaseUrl { get; set; } = "https://archive-api.open-meteo.com/v1/archive";
 }
