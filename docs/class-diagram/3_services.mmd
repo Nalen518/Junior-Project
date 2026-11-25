@@ -42,8 +42,59 @@ direction TB
     +GetLatest(int cityId) RefreshResultDto
   }
   class WeatherService {
-    +FetchTodayAsync(City city) Task
-    +FetchArchiveAsync(City city) Task
+    +SearchAsync(string query) Task~List~
+    +FetchTodayAsync(City city) Task~TodayReading~
+    +FetchArchiveAsync(City city) Task~List~
+  }
+  class TodayReading {
+    <<record>>
+    +DateOnly LocalDate
+    +double? Temperature
+    +double? Precipitation
+    +double? WindSpeed
+  }
+  class IProfileService {
+    <<interface>>
+  }
+  class IWatchlistService {
+    <<interface>>
+  }
+  class ICityService {
+    <<interface>>
+  }
+  class IAdvisoryService {
+    <<interface>>
+  }
+  class IEventLedgerService {
+    <<interface>>
+  }
+  class ProfileService {
+    +ListAsync() Task
+    +GetAsync(int profileId) Task~ProfileDto~
+    +CreateAsync(CreateProfileRequest request) Task~ProfileDto~
+    +UpdateAsync(int profileId, UpdateProfileRequest request) Task~ProfileDto~
+  }
+  class WatchlistService {
+    +ListAsync(int profileId) Task
+    +AddAsync(int profileId, AddWatchlistRequest request) Task~WatchlistEntryDto~
+    +UpdateAsync(int profileId, int cityId, UpdateWatchlistRequest request) Task~WatchlistEntryDto~
+    +RemoveAsync(int profileId, int cityId) Task
+  }
+  class CityService {
+    +SearchAsync(string query) Task
+    +ListStoredAsync() Task
+    +GetAsync(int cityId) Task~CityDto~
+    +AddAsync(CitySearchResult result) Task~CityDto~
+  }
+  class EventLedgerService {
+    +ListAsync(EventQuery query, int page, int pageSize) Task
+    +GetAsync(int eventId) Task~AnomalyEventDto~
+    +ExportAsync(EventQuery query, ExportFormat format, Stream destination) Task
+  }
+  class DtoMapping {
+    <<static>>
+    +ToDto() Dto
+    +UtcNowForDb() DateTime
   }
   class AnomalyDetectionService {
     +Evaluate(double observed, Baseline baseline) AnomalyResult
@@ -51,6 +102,7 @@ direction TB
     +DecideEvent(AnomalyEvent openEvent, double zScore) EventAction
   }
   class AdvisoryService {
+    +GetLatestAsync(MetricType metric, SeverityTier tier, string locale) Task
     +GetLatest(MetricType metric, SeverityTier tier, string locale) List~Advisory~
   }
   class ClimateTwinEngine {
@@ -93,12 +145,13 @@ direction TB
     +GetLatest(MetricType metric, SeverityTier tier, string locale) List~Advisory~
   }
   class AnomalyEventRepository {
+    +GetById(int eventId) AnomalyEvent
     +GetOpenEvent(int cityId, MetricType metric) AnomalyEvent
+    +List(filters, int page, int pageSize) List~AnomalyEvent~
+    +Count(filters) int
+    +UpdatePeak(int eventId, SeverityTier tier, DateTime peakAt, double peakValue, double peakZ) bool
     +Add(AnomalyEvent item) void
-    +UpdatePeak(int eventId, SeverityTier tier, DateTime atUtc, double observed, double zScore) void
     +Close(int eventId, DateTime endedAtUtc) bool
-    +ExportCsv(string filePath) void
-    +ExportJson(string filePath) void
   }
 
 IAnomalyStrategy <|.. TemperatureStrategy
@@ -131,6 +184,24 @@ AnomalyDetectionService --> WeatherService
 AnomalyDetectionService --> BaselineRepository
 AnomalyDetectionService --> AnomalyEventRepository
 AnomalyDetectionService ..> AnomalyResult
+WeatherService ..> TodayReading
+IProfileService <|.. ProfileService
+IWatchlistService <|.. WatchlistService
+ICityService <|.. CityService
+IAdvisoryService <|.. AdvisoryService
+IEventLedgerService <|.. EventLedgerService
+ProfileService --> UserProfileRepository
+WatchlistService --> WatchlistRepository
+WatchlistService --> UserProfileRepository
+WatchlistService --> CityRepository
+CityService --> CityRepository
+CityService --> WeatherService
+EventLedgerService --> AnomalyEventRepository
+EventLedgerService --> CityRepository
+ProfileService ..> DtoMapping
+WatchlistService ..> DtoMapping
+CityService ..> DtoMapping
+EventLedgerService ..> DtoMapping
 AdvisoryService --> AdvisoryRepository
 AdvisoryService ..> Advisory
 ClimateTwinEngine ..> AnomalyResult
