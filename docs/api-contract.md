@@ -1,6 +1,6 @@
 # ClimaPulse Internal API Contract (v2)
 
-Status: draft for team approval. Last updated 2026-11-25 (UI is WPF).
+Status: draft for team approval. Last updated 2026-11-26 (GetRecentAsync for the 14-day chart).
 
 This document is the agreement between the **frontend** (WPF windows and user controls in the desktop app) and the **backend** (services, repositories, Open-Meteo access). Both sides build against the same C# interfaces and DTOs in `shared/ClimaPulse.Contracts`. That project **is** the contract. This file explains it and the rules around it. If the two ever disagree, the code in `shared/ClimaPulse.Contracts` wins and this file gets fixed.
 
@@ -121,6 +121,8 @@ public interface IMonitoringService
 {
     /// <summary>Fetch live data, compute z-scores, open, update or close events. FR-06, FR-10 to FR-12, FR-22 to FR-25.</summary>
     Task<RefreshResultDto> RefreshCityAsync(int cityId, CancellationToken ct = default);     // NotFound, Upstream
+    /// <summary>Daily readings of the last days up to today, oldest first, scored against their month's baseline. Read-only: never opens events. FR-20.</summary>
+    Task<IReadOnlyList<MetricReadingDto>> GetRecentAsync(int cityId, int days = 14, CancellationToken ct = default); // NotFound, Validation, Upstream
 }
 
 public interface IBaselineService
@@ -500,6 +502,7 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 | 2026-10-22 | v2.1 | Section 14: Open-Meteo endpoints, variables, units, error mapping, limits and requirement coverage. Proposed daily-vs-daily comparison |
 | 2026-11-24 | v2.2 | C2 decided: search throws `UpstreamException`, no stored-list fallback. Section 9: last refresh kept in memory, global thresholds (SRD OPEN-1, OPEN-10). No interface or DTO change |
 | 2026-11-25 | v2.3 | UI is WPF: composition root is `App.xaml.cs`, crash handler is `DispatcherUnhandledException`, project uses `UseWPF`. No interface or DTO change |
+| 2026-11-26 | v2.4 | New `IMonitoringService.GetRecentAsync` for the S4 "Last 14 days" chart (FR-20): one `MetricReadingDto` per day and metric, oldest first, `days` 1 to 31, `ObservedAt` is the local date at 00:00Z, no events and no advisories. Added to the interface, no DTO change. Section 14: forecast with `past_days` |
 
 ---
 
@@ -594,6 +597,10 @@ GET https://api.open-meteo.com/v1/forecast
 ```
 - The docs say `timezone` is required when `daily` is requested. Use the city's own zone (stored in `City.timezone`), so "today" means the city's local day.
 - One call per city per refresh. All three metrics come back together.
+
+**Forecast, last 14 days (FR-20, S4 chart)**
+
+The same forecast URL with `&past_days=13` added returns the 13 days before today plus today, oldest first. `IMonitoringService.GetRecentAsync` makes one such call when S4 opens. The archive is not used here because it lags about 5 days behind.
 
 **Archive, 30 years of history (FR-07 to FR-09)**
 ```

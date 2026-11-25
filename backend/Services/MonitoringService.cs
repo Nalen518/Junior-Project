@@ -57,39 +57,92 @@ public class MonitoringService : IMonitoringService
         // Events and readings use the refresh time, not the daily date label (SRD OPEN-10).
         var now = DtoMapping.UtcNowForDb();
 
-        var metrics = await Task.Run(() => new List<MetricReadingDto>
-        {
-            Read(city.Id, MetricType.Temperature, today.Temperature, today.LocalDate.Month, now),
-            Read(city.Id, MetricType.Precipitation, today.Precipitation, today.LocalDate.Month, now),
-            Read(city.Id, MetricType.WindSpeed, today.WindSpeed, today.LocalDate.Month, now),
-        }, ct);
+        var metrics = await Task.Run(
+            () => Metrics.Select(m => Read(city.Id, m, ValueOf(today, m), today.LocalDate.Month, now)).ToList(), ct);
 
         var result = new RefreshResultDto(city.Id, now, metrics);
         _state.SaveLatest(result);
         return result;
     }
 
+    /// <summary>
+    /// The last days up to today for the S4 chart, scored like a refresh but read-only: no events,
+    /// no advisories, nothing kept in memory (FR-20). ObservedAt is each day's local date at 00:00Z.
+    /// </summary>
+    public async Task<IReadOnlyList<MetricReadingDto>> GetRecentAsync(int cityId, int days = 14, CancellationToken ct = default)
+    {
+        if (days is < 1 or > MaxRecentDays)
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                ["days"] = [$"Days must be 1 to {MaxRecentDays}."]
+            });
+
+        var city = await Task.Run(() => _cities.GetById(cityId), ct) ?? throw new NotFoundException("City", cityId);
+        var recent = await _weather.FetchRecentAsync(city, days, ct);
+
+        return await Task.Run<IReadOnlyList<MetricReadingDto>>(() =>
+        {
+            // One baseline lookup per metric and month, not one per day.
+            var baselines = new Dictionary<(MetricType, int), Baseline?>();
+            Baseline? BaselineFor(MetricType metric, int month) =>
+                baselines.TryGetValue((metric, month), out var b)
+                    ? b
+                    : baselines[(metric, month)] = _baselines.GetByCityMetricMonth(city.Id, metric, month);
+
+            return recent.SelectMany(day =>
+                {
+                    var at = new DateTime(day.LocalDate, TimeOnly.MinValue, DateTimeKind.Utc);
+                    return Metrics.Select(m =>
+                    {
+                        var value = ValueOf(day, m);
+                        return Score(m, value, value is null ? null : BaselineFor(m, day.LocalDate.Month), at);
+                    });
+                })
+                .ToList();
+        }, ct);
+    }
+
+    private const int MaxRecentDays = 31;
+
+    /// <summary>The scored metrics, in the order every reading list uses.</summary>
+    private static readonly MetricType[] Metrics = [MetricType.Temperature, MetricType.Precipitation, MetricType.WindSpeed];
+
+    private static double? ValueOf(TodayReading day, MetricType metric) => metric switch
+    {
+        MetricType.Temperature => day.Temperature,
+        MetricType.Precipitation => day.Precipitation,
+        _ => day.WindSpeed,
+    };
+
     private MetricReadingDto Read(int cityId, MetricType metric, double? value, int month, DateTime now)
     {
-        if (value is not { } observed)
-            return NotScored(metric, DataStatus.NoData, now, null, null);
+        var baseline = value is null ? null : _baselines.GetByCityMetricMonth(cityId, metric, month);
+        var reading = Score(metric, value, baseline, now);
+        if (reading.DataStatus != DataStatus.Ok)
+            return reading;
 
-        var baseline = _baselines.GetByCityMetricMonth(cityId, metric, month);
+        var tier = reading.Tier!.Value;
+        List<Advisory> advisories = tier == SeverityTier.Normal ? [] : _advisories.GetLatest(metric, tier, AdvisoryLocale);
+        var activeEventId = UpdateLedger(cityId, metric, reading.ObservedValue!.Value, reading.ZScore!.Value, tier,
+            baseline!, advisories, now);
+
+        return reading with { ActiveEventId = activeEventId, Advisories = advisories.Select(a => a.ToDto()).ToList() };
+    }
+
+    /// <summary>Status, z-score and tier of one value against its baseline. No ledger and no advisories.</summary>
+    private MetricReadingDto Score(MetricType metric, double? value, Baseline? baseline, DateTime at)
+    {
+        if (value is not { } observed)
+            return NotScored(metric, DataStatus.NoData, at, null, null);
         if (baseline is null)
-            return NotScored(metric, DataStatus.NoBaseline, now, observed, null);
+            return NotScored(metric, DataStatus.NoBaseline, at, observed, null);
         // Checked here, before the strategy, so the Modul 9 strategies stay unchanged (D6).
         if (baseline.StdDevValue <= 0)
-            return NotScored(metric, DataStatus.ZeroVariance, now, observed, baseline);
+            return NotScored(metric, DataStatus.ZeroVariance, at, observed, baseline);
 
         var result = _detection.Evaluate(observed, baseline);
-        var z = result.DeviationSigma;
-        var tier = result.SeverityTier;
-        List<Advisory> advisories = tier == SeverityTier.Normal ? [] : _advisories.GetLatest(metric, tier, AdvisoryLocale);
-
-        var activeEventId = UpdateLedger(cityId, metric, observed, z, tier, baseline, advisories, now);
-
-        return new MetricReadingDto(metric, DataStatus.Ok, now, observed, baseline.MeanValue, baseline.StdDevValue,
-            z, tier, activeEventId, advisories.Select(a => a.ToDto()).ToList());
+        return new MetricReadingDto(metric, DataStatus.Ok, at, observed, baseline.MeanValue, baseline.StdDevValue,
+            result.DeviationSigma, result.SeverityTier, null, []);
     }
 
     /// <summary>Applies the hysteresis decision and returns the id of the event still open afterwards.</summary>
