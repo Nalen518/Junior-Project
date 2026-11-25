@@ -21,6 +21,8 @@ direction TB
   class CityRepository {
     +GetById(int id) City
     +GetWatchedBy(int profileId) List~City~
+    +FindByRef(string openMeteoRef) City
+    +FindByPlace(string name, double latitude, double longitude) City
   }
   class WatchlistRepository {
     +GetByProfile(int profileId) List~WatchlistEntry~
@@ -38,14 +40,16 @@ direction TB
     +GetLatest(MetricType metric, SeverityTier tier, string locale) List~Advisory~
   }
   class AnomalyEventRepository {
+    +GetById(int eventId) AnomalyEvent
     +GetOpenEvent(int cityId, MetricType metric) AnomalyEvent
+    +List(filters, int page, int pageSize) List~AnomalyEvent~
+    +Count(filters) int
+    +UpdatePeak(int eventId, SeverityTier tier, DateTime peakAt, double peakValue, double peakZ) bool
     +Close(int eventId, DateTime endedAtUtc) bool
-    +ExportCsv(string filePath) void
-    +ExportJson(string filePath) void
   }
   class DatabaseConfig {
     <<static>>
-    +DbPath string
+    +DefaultConnectionString string
     +ConnectionString string
   }
   class DatabaseInitializer {
