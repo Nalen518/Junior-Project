@@ -8,7 +8,7 @@ Sources: `docs/SRD.md` (0.4.4), `docs/api-contract.md`, `docs/references-desktop
 |---|---|
 | Nalen | Software engineer and project manager |
 | Radit | UI/UX designer |
-| Christa | Frontend developer (Windows Forms) |
+| Christa | Frontend developer (WPF) |
 | Syauqi | Backend developer (services, Open-Meteo, PostgreSQL) |
 
 ---
@@ -18,7 +18,7 @@ Sources: `docs/SRD.md` (0.4.4), `docs/api-contract.md`, `docs/references-desktop
 - One task per branch, named `type/short-description` (for example `feat/dashboard-view`). Never commit to `main`.
 - Open a PR into `Development`. One teammate reviews, then a human merges. `Development` goes into `main` before each demo.
 - Run `dotnet build` and `dotnet test` before every PR. Both must pass.
-- Frontend code uses only the interfaces in `shared/ClimaPulse.Contracts`. Only `frontend/Program.cs` creates backend classes.
+- Frontend code uses only the interfaces in `shared/ClimaPulse.Contracts`. Only `frontend/App.xaml.cs` creates backend classes. The UI is WPF (SRD 1.3, accepted 2026-11-25).
 - English only in v1. All screen text goes in `.resx` files.
 - Charts are drawn by hand with `Graphics`. No chart library. Ask Nalen before adding any package.
 
@@ -44,9 +44,9 @@ Nalen's Contracts project blocks both Christa and Syauqi, so it comes first. Chr
 - [x] Create `shared/ClimaPulse.Contracts`: the 8 interfaces, all DTOs, enums and the 5 exception types from `docs/api-contract.md` (#10, built by Syauqi)
 - [x] Move `backend/Enums/*.cs` into the Contracts project (namespace stays `ClimaPulse.Enums`) (#10)
 - [x] Add Contracts to `ClimaPulse.slnx` (#10)
-- [ ] Add the empty Windows Forms project `frontend/ClimaPulse.Desktop` to `ClimaPulse.slnx`
-- [ ] `frontend/Program.cs`: composition root with the `UseFakes` switch and the two crash handlers (architecture guide, step 3). Create one `CityRefreshState` and pass it to the baseline, monitoring and dashboard services
-- [ ] Start-up check: call `DatabaseInitializer` in `Program.cs` and show Radit's S1 "database not reachable" screen with Retry when it fails (SRD OPEN-10)
+- [x] WPF project `frontend/ClimaPulse.Desktop` in `ClimaPulse.slnx` (Christa, `feat/fe`, not merged yet)
+- [ ] Review `frontend/App.xaml.cs` (composition root): all 8 services, one `CityRefreshState` shared by baseline, monitoring and dashboard, and the `DispatcherUnhandledException` crash handler (architecture guide, step 3)
+- [ ] Start-up check: call `DatabaseInitializer` in `App.xaml.cs` and show Radit's S1 "database not reachable" screen with Retry when it fails (SRD OPEN-10)
 - [x] Delete the leftover `frontend/Components/Dashboard.razor` (done 2026-11-21, no Blazor left in the repo)
 
 ### Decisions to close
@@ -55,7 +55,7 @@ Nalen's Contracts project blocks both Christa and Syauqi, so it comes first. Chr
 - [ ] OPEN-4: demo starts from `seed.sql` plus pre-downloaded baselines
 - [ ] OPEN-5: refresh only on button press, or also a timer
 - [ ] OPEN-8: confirm with the teaching assistant that a group of four is accepted
-- [ ] Decide with Radit and Christa which Figma effects stay simple in Windows Forms (skeleton loaders, drawer, rounded cards)
+- [ ] Decide with Radit and Christa which Figma effects stay simple in WPF (skeleton loaders, drawer, rounded cards)
 
 ### Ongoing
 - [ ] Review every PR that touches `shared/ClimaPulse.Contracts`
@@ -80,7 +80,7 @@ The six main screens and most of their states are done in Figma (Set A). What is
 ### Design
 - [ ] S1: "database not reachable" screen at start-up (PostgreSQL not running). Message, what to check, and a Retry button
 - [ ] S6: remove the Theme field, or keep it with Dark disabled (dark theme is out of v1, FR-21)
-- [ ] `Components` page: change the note "Blazor: inline SVG or an icon font" to Windows Forms
+- [ ] `Components` page: change the note "Blazor: inline SVG or an icon font" to WPF
 - [ ] Move the `cld ·` pages (Set B) into `Archive` so nobody builds from them
 - [ ] S8 GitHub Page: one page with the product idea, screenshots, team and the demo download link
 
@@ -92,14 +92,22 @@ The six main screens and most of their states are done in Figma (Set A). What is
 
 ---
 
-## Christa: frontend (Windows Forms)
+## Christa: frontend (WPF)
+
+### To finish `feat/fe` (found in review, 2026-11-25)
+- [ ] Wire the 4 missing services in `App.xaml.cs`: `IDashboardService`, `IMonitoringService`, `IBaselineService`, `IAdvisoryService` (with `TemperatureStrategy`, `PrecipitationStrategy`, `WindStrategy` and one shared `CityRefreshState`)
+- [ ] Dashboard: show tiers from `IDashboardService.GetAsync`, and make Refresh all call `IMonitoringService.RefreshCityAsync` per city
+- [ ] City detail: replace the sample values (36.9 °C, z +4.3 and the "Sample … preview" texts) with real readings, baselines and advice
+- [ ] Add a `DispatcherUnhandledException` handler so a bug in a screen does not close the app (contract section 7)
+- [ ] Add `<EnableWindowsTargeting>true</EnableWindowsTargeting>` to `ClimaPulse.Desktop.csproj` so CI (Linux) can build it
+- [ ] Update `feat/fe` from `Development` and open a PR (the `AGENTS.md` edit is no longer needed)
 
 Build in this order. Use the fakes until Syauqi's services are ready.
 
 ### Foundation
 - [ ] `frontend/Fakes/`: one fake class per interface, with Surabaya, Jakarta, Yogyakarta, Tokyo sample data
 - [ ] `Theme` class: colours, fonts and spacing from Radit's hand-off
-- [ ] `MainForm`: sidebar (Dashboard, Anomaly Ledger, Settings, profile chip) and a content panel that swaps user controls
+- [ ] `MainWindow`: sidebar (Dashboard, Anomaly Ledger, Settings, profile chip) and a content area that swaps user controls
 - [ ] One shared helper that catches `ClimaPulseException` and shows the message (contract section 7)
 
 ### Reusable controls
@@ -109,11 +117,11 @@ Build in this order. Use the fakes until Syauqi's services are ready.
 - [ ] `BellCurveChart` and `TrendChart` drawn in `OnPaint` (temperature line and rain bars), `DoubleBuffered = true`
 
 ### Screens (Figma Set A)
-- [ ] S1 `ProfilePickerForm`: main and first run (FR-29)
+- [ ] S1 `ProfilePickerWindow`: main and first run (FR-29)
 - [ ] S2 Add city dialog: search, results, already added, searching, no results, Open-Meteo error, importing 30 years with progress (FR-01, FR-02, FR-07)
 - [ ] S3 `DashboardView`: city grid, metric filter, Refresh all, loading, empty, Open-Meteo down (FR-17, FR-18)
 - [ ] S4 `CityDetailView`: Temperature and Rain tabs, both charts, advice, alert threshold, past events, remove-city confirm, loading, baseline not ready, error (FR-03, FR-04, FR-19, FR-20)
-- [ ] S5 `LedgerView`: filters, paged `DataGridView`, event details, Export CSV and JSON with `SaveFileDialog`, export saved and failed banners, loading, empty, error (FR-26, FR-27)
+- [ ] S5 `LedgerView`: filters, paged `DataGrid`, event details, Export CSV and JSON with `SaveFileDialog`, export saved and failed banners, loading, empty, error (FR-26, FR-27)
 - [ ] S6 `SettingsView`: unit, default threshold, profile name, refresh baselines with progress, saved and invalid input states (FR-04, FR-05, FR-09)
 - [ ] Settings file `%LOCALAPPDATA%\ClimaPulse\settings.json` for the last profile (contract C3)
 
@@ -151,7 +159,7 @@ All 8 contract services are written. #16 to #19 are open: merge them in order.
 - [ ] `IBaselineService` (PR #16 open)
 - [ ] `IMonitoringService` (PR #17 open)
 - [ ] `IDashboardService` (PR #18 open)
-- [x] Database not reachable: decided as a start-up check in `Program.cs` (see Nalen's list), no contract change
+- [x] Database not reachable: decided as a start-up check in `App.xaml.cs` (see Nalen's list), no contract change
 
 ### Tests
 - [ ] Unit tests for hysteresis (PR #19 open) and for baseline maths (PR #16 open) (NFR-13)
