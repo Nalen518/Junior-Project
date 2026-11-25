@@ -1,0 +1,56 @@
+# Runs on every pull request into Development or main, and on pushes to them.
+# Builds the solution with warnings as errors, runs every test (database tests
+# against a throwaway PostgreSQL), and checks that schema.sql + seed.sql load.
+name: CI
+
+on:
+  pull_request:
+    branches: [Development, main]
+  push:
+    branches: [Development, main]
+
+jobs:
+  build-and-test:
+    # shortcut: Linux runner, because only Linux runners have service containers (PostgreSQL).
+    # When frontend/ClimaPulse.Desktop (net10.0-windows) joins the .slnx, add
+    # <EnableWindowsTargeting>true</EnableWindowsTargeting> to it, or build it in a windows-latest job.
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres   # throwaway CI container, not a real secret
+          POSTGRES_DB: climapulse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      CLIMAPULSE_TEST_DB_CONNECTION: Host=localhost;Port=5432;Database=climapulse_test;Username=postgres;Password=postgres
+      DOTNET_NOLOGO: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build (warnings are errors)
+        run: dotnet build ClimaPulse.slnx -c Release -warnaserror
+
+      - name: Test (unit and database)
+        run: dotnet test ClimaPulse.slnx -c Release --no-build
+
+      - name: Check schema.sql and seed.sql load into an empty database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE climapulse_seedcheck"
+          psql -h localhost -U postgres -d climapulse_seedcheck -v ON_ERROR_STOP=1 -f backend/Database/schema.sql
+          psql -h localhost -U postgres -d climapulse_seedcheck -v ON_ERROR_STOP=1 -f backend/Database/seed.sql
