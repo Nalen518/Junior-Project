@@ -33,7 +33,7 @@ Branch names use `type/short-description` with types `feat`, `fix`, `docs`, `ref
 
 Commit messages follow Conventional Commits, for example `feat(watchlist): implement IWatchlistService.AddAsync`. Every commit is the solo work of the team member who made it: they are the only author and committer. Never add an AI tool as author, committer, `Co-Authored-By` trailer or contributor, in commits or in PR text.
 
-**Pros of this setup:** a bad agent run only damages one branch, history stays readable, and a rollback is one revert. **Cons:** more branches to manage, and small merge conflicts when the monorepo's shared files (`README.md`, `frontend/Program.cs`, the Contracts project) are edited by several people. Keep those edits in tiny PRs and merge them first.
+**Pros of this setup:** a bad agent run only damages one branch, history stays readable, and a rollback is one revert. **Cons:** more branches to manage, and small merge conflicts when the monorepo's shared files (`README.md`, `frontend/App.xaml.cs`, the Contracts project) are edited by several people. Keep those edits in tiny PRs and merge them first.
 
 ---
 
@@ -105,7 +105,7 @@ Copy this into your review comment.
 - [ ] No secrets, `.env`, `.db` files or personal paths are in the diff.
 - [ ] No unrelated files were reformatted or moved.
 - [ ] New packages are justified and exist on the official registry.
-- [ ] Layering is respected: forms and user controls use only `ClimaPulse.Contracts` interfaces, services return DTOs, only `WeatherService` calls Open-Meteo.
+- [ ] Layering is respected: windows and user controls use only `ClimaPulse.Contracts` interfaces, services return DTOs, only `WeatherService` calls Open-Meteo.
 - [ ] Database changes updated the schema, DBML, seed, models and mapping together.
 - [ ] Error cases are handled (empty list, zero standard deviation, missing city).
 - [ ] The author could explain the tricky parts when asked.
