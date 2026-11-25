@@ -47,6 +47,35 @@ public class CityRepository : PostgresRepositoryBase, IRepository<City>
         ReadList($"SELECT {Columns} FROM City WHERE city_id = @id", Map,
             cmd => AddParam(cmd, "@id", id)).FirstOrDefault();
 
+    /// <summary>
+    /// The stored city with this Open-Meteo geocoding id, or null. First duplicate check
+    /// for D7, because City has no unique key.
+    /// </summary>
+    public City? FindByRef(string openMeteoRef) =>
+        ReadList($"SELECT {Columns} FROM City WHERE open_meteo_ref = @ref LIMIT 1", Map,
+            cmd => AddParam(cmd, "@ref", openMeteoRef)).FirstOrDefault();
+
+    /// <summary>
+    /// The stored city with the same name and coordinates rounded to 2 decimals (about 1 km),
+    /// or null. Fallback duplicate check for D7 when a city has no Open-Meteo id.
+    /// Rounding happens in SQL on both sides so the two values round the same way.
+    /// </summary>
+    public City? FindByPlace(string name, double latitude, double longitude) =>
+        ReadList(
+            $@"SELECT {Columns} FROM City
+               WHERE name = @name
+                 AND round(latitude::numeric, 2) = round(@lat::numeric, 2)
+                 AND round(longitude::numeric, 2) = round(@lon::numeric, 2)
+               ORDER BY city_id
+               LIMIT 1",
+            Map,
+            cmd =>
+            {
+                AddParam(cmd, "@name", name);
+                AddParam(cmd, "@lat", latitude);
+                AddParam(cmd, "@lon", longitude);
+            }).FirstOrDefault();
+
     /// <summary>Cities on one profile's watchlist. Replaces the old IsPinned flag.</summary>
     public List<City> GetWatchedBy(int profileId) =>
         ReadList(
