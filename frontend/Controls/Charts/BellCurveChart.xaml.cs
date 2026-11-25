@@ -13,10 +13,24 @@ public partial class BellCurveChart : UserControl
             typeof(BellCurveChart),
             new PropertyMetadata("Temperature", OnMetricChanged));
 
+    public static readonly DependencyProperty ZScoreProperty =
+        DependencyProperty.Register(
+            nameof(ZScore),
+            typeof(double?),
+            typeof(BellCurveChart),
+            new PropertyMetadata(null, OnMetricChanged));
+
     public string Metric
     {
         get => (string)GetValue(MetricProperty);
         set => SetValue(MetricProperty, value);
+    }
+
+    /// <summary>The backend's z-score. Null draws the curve without a marker.</summary>
+    public double? ZScore
+    {
+        get => (double?)GetValue(ZScoreProperty);
+        set => SetValue(ZScoreProperty, value);
     }
 
     public BellCurveChart()
@@ -83,19 +97,21 @@ public partial class BellCurveChart : UserControl
         curve.Freeze();
         drawingContext.DrawGeometry(null, curvePen, curve);
 
-        var marker = Metric switch
-        {
-            "Rain" => 3.6d,
-            "Wind" => 2.1d,
-            _ => 4.0d
-        };
+        var meanX = left + chartWidth / 2d;
 
-        var markerColor = Metric switch
+        drawingContext.DrawLine(
+            axisPen,
+            new Point(meanX, bottom),
+            new Point(meanX, bottom - chartHeight * 0.58));
+
+        if (ZScore is not { } z)
         {
-            "Rain" => Color.FromRgb(198, 42, 42),
-            "Wind" => Color.FromRgb(176, 112, 0),
-            _ => Color.FromRgb(198, 42, 42)
-        };
+            return;
+        }
+
+        // Display only: a z beyond ±4 sits at the chart edge.
+        var marker = Math.Clamp(z, -4d, 4d);
+        var markerColor = Color.FromRgb(198, 42, 42);
 
         var markerX =
             left + ((marker + 4d) / 8d) * chartWidth;
@@ -115,13 +131,6 @@ public partial class BellCurveChart : UserControl
             new Point(markerX, bottom),
             3,
             3);
-
-        var meanX = left + chartWidth / 2d;
-
-        drawingContext.DrawLine(
-            axisPen,
-            new Point(meanX, bottom),
-            new Point(meanX, bottom - chartHeight * 0.58));
     }
 
     private static void OnMetricChanged(

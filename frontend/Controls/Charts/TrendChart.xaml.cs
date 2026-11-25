@@ -13,10 +13,24 @@ public partial class TrendChart : UserControl
         new PropertyMetadata("Temperature", OnMetricChanged)
     );
 
+    public static readonly DependencyProperty ValuesProperty = DependencyProperty.Register(
+        nameof(Values),
+        typeof(IReadOnlyList<double>),
+        typeof(TrendChart),
+        new PropertyMetadata(null, OnMetricChanged)
+    );
+
     public string Metric
     {
         get => (string)GetValue(MetricProperty);
         set => SetValue(MetricProperty, value);
+    }
+
+    /// <summary>Daily values, oldest first. No service provides them yet, so nothing is drawn until set.</summary>
+    public IReadOnlyList<double>? Values
+    {
+        get => (IReadOnlyList<double>?)GetValue(ValuesProperty);
+        set => SetValue(ValuesProperty, value);
     }
 
     public TrendChart()
@@ -31,8 +45,9 @@ public partial class TrendChart : UserControl
 
         var width = ActualWidth;
         var height = ActualHeight;
+        var values = Values;
 
-        if (width < 40 || height < 50)
+        if (width < 40 || height < 50 || values is null || values.Count < 2)
         {
             return;
         }
@@ -52,13 +67,6 @@ public partial class TrendChart : UserControl
             new Rect(left, top + chartHeight * 0.35, chartWidth, chartHeight * 0.45)
         );
 
-        var values = Metric switch
-        {
-            "Rain" => new[] { 0.1, 0.4, 2.5, 6.0, 0.2, 4.8, 9.0, 41.2 },
-            "Wind" => new[] { 9.2, 12.4, 10.8, 14.1, 16.3, 13.2, 18.9, 20.1 },
-            _ => new[] { 31.2, 30.8, 31.4, 32.0, 31.6, 33.1, 34.0, 36.9 },
-        };
-
         var min = values.Min();
         var max = values.Max();
         var range = Math.Max(max - min, 1d);
@@ -69,15 +77,15 @@ public partial class TrendChart : UserControl
 
         if (Metric == "Rain")
         {
-            var barWidth = chartWidth / values.Length * 0.45;
+            var barWidth = chartWidth / values.Count * 0.45;
 
-            for (var index = 0; index < values.Length; index++)
+            for (var index = 0; index < values.Count; index++)
             {
-                var x = left + index * chartWidth / values.Length;
+                var x = left + index * chartWidth / values.Count;
                 var barHeight = (values[index] - min) / range * chartHeight * 0.82 + 6;
 
                 var brush =
-                    index == values.Length - 1
+                    index == values.Count - 1
                         ? new SolidColorBrush(Color.FromRgb(198, 42, 42))
                         : new SolidColorBrush(lineColor);
 
@@ -95,9 +103,9 @@ public partial class TrendChart : UserControl
 
         using (var context = line.Open())
         {
-            for (var index = 0; index < values.Length; index++)
+            for (var index = 0; index < values.Count; index++)
             {
-                var x = left + index * chartWidth / (values.Length - 1);
+                var x = left + index * chartWidth / (values.Count - 1);
 
                 var y =
                     bottom

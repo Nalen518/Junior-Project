@@ -10,6 +10,7 @@ public partial class ProfilePickerWindow : Window
     private readonly IProfileService _profileService;
     private readonly ICityService _cityService;
     private readonly IWatchlistService _watchlistService;
+    private readonly IBaselineService _baselineService;
     private readonly int? _lastProfileId;
 
     public ObservableCollection<ProfileDto> Profiles { get; } = [];
@@ -20,12 +21,14 @@ public partial class ProfilePickerWindow : Window
         IProfileService profileService,
         ICityService cityService,
         IWatchlistService watchlistService,
+        IBaselineService baselineService,
         int? lastProfileId
     )
     {
         _profileService = profileService;
         _cityService = cityService;
         _watchlistService = watchlistService;
+        _baselineService = baselineService;
         _lastProfileId = lastProfileId;
 
         InitializeComponent();
@@ -110,7 +113,12 @@ public partial class ProfilePickerWindow : Window
         EmptyStateText.Visibility = Visibility.Collapsed;
         ProfilesList.SelectedItem = createdProfile;
 
-        var firstCityWindow = new FirstCityWindow(createdProfile, _cityService, _watchlistService)
+        var firstCityWindow = new FirstCityWindow(
+            createdProfile,
+            _cityService,
+            _watchlistService,
+            _baselineService
+        )
         {
             Owner = this,
         };

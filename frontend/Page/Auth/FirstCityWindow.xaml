@@ -2,6 +2,7 @@
     x:Class="ClimaPulse.Desktop.Page.Auth.FirstCityWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:ClimaPulse.Desktop.Controls"
     Title="Choose your first city"
     Width="620"
     Height="700"
@@ -165,6 +166,19 @@
                         Foreground="#65737E"
                         TextAlignment="Center"
                         TextWrapping="Wrap" />
+
+                    <StackPanel
+                        x:Name="ImportOverlay"
+                        Background="White"
+                        Visibility="Collapsed">
+                        <controls:BaselineImportPanel x:Name="BaselineImport" />
+
+                        <Button
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Click="ContinueButton_Click"
+                            Content="Continue" />
+                    </StackPanel>
                 </Grid>
 
                 <TextBlock

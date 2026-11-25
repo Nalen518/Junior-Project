@@ -221,11 +221,32 @@
                                 Text="Loading city count…" />
 
                             <Button
+                                x:Name="RefreshBaselinesButton"
                                 Margin="0,14,0,0"
                                 HorizontalAlignment="Left"
-                                Content="Refresh baselines"
-                                IsEnabled="False"
-                                ToolTip="Baseline refresh needs IBaselineService, which is not implemented yet." />
+                                Click="RefreshBaselinesButton_Click"
+                                Content="Refresh baselines" />
+
+                            <TextBlock
+                                x:Name="BaselineStatusText"
+                                Margin="0,10,0,0"
+                                FontSize="11"
+                                Foreground="#07566B"
+                                TextWrapping="Wrap" />
+
+                            <ProgressBar
+                                x:Name="BaselineProgress"
+                                Height="8"
+                                Margin="0,6,0,0"
+                                Maximum="100"
+                                Visibility="Collapsed" />
+
+                            <TextBlock
+                                x:Name="BaselineErrorText"
+                                Margin="0,6,0,0"
+                                FontSize="11"
+                                Foreground="#B42318"
+                                TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

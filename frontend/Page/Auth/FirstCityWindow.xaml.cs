@@ -11,6 +11,8 @@ public partial class FirstCityWindow : Window
     private readonly ProfileDto _profile;
     private readonly ICityService _cityService;
     private readonly IWatchlistService _watchlistService;
+    private readonly IBaselineService _baselineService;
+    private bool _closed;
 
     public ObservableCollection<CitySearchResult> Results { get; } = [];
 
@@ -20,11 +22,13 @@ public partial class FirstCityWindow : Window
     public FirstCityWindow(
         ProfileDto profile,
         ICityService cityService,
-        IWatchlistService watchlistService)
+        IWatchlistService watchlistService,
+        IBaselineService baselineService)
     {
         _profile = profile;
         _cityService = cityService;
         _watchlistService = watchlistService;
+        _baselineService = baselineService;
 
         InitializeComponent();
 
@@ -32,6 +36,15 @@ public partial class FirstCityWindow : Window
         DataContext = this;
 
         Loaded += (_, _) => SearchTextBox.Focus();
+        Closed += (_, _) => _closed = true;
+    }
+
+    private void ContinueButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        // The import keeps running after the window closes.
+        DialogResult = true;
     }
 
     private async void SearchButton_Click(
@@ -118,38 +131,49 @@ public partial class FirstCityWindow : Window
         SearchButton.IsEnabled = false;
         ErrorText.Visibility = Visibility.Collapsed;
         StatusText.Text = $"Adding {selectedCity.Name}…";
+        CityDto storedCity;
 
         try
         {
-            var storedCity = await _cityService.AddAsync(selectedCity);
+            storedCity = await _cityService.AddAsync(selectedCity);
 
             await _watchlistService.AddAsync(
                 _profile.Id,
                 new AddWatchlistRequest(storedCity.Id));
-
-            DialogResult = true;
         }
         catch (ConflictException)
         {
             // The city is already on this profile's watchlist.
             // It is safe to continue to the application.
             DialogResult = true;
+            return;
         }
         catch (ClimaPulseException ex)
         {
             StatusText.Text = string.Empty;
             ShowError(ex.Message);
+            return;
         }
         catch (Exception)
         {
             StatusText.Text = string.Empty;
             ShowError(
                 "The city could not be added. Check the database connection and try again.");
+            return;
         }
         finally
         {
             AddCityButton.IsEnabled = true;
             SearchButton.IsEnabled = true;
+        }
+
+        // The city is kept even if the baseline import fails (FR-07 to FR-09).
+        StatusText.Text = string.Empty;
+        ImportOverlay.Visibility = Visibility.Visible;
+
+        if (await BaselineImport.RunAsync(_baselineService, storedCity) && !_closed)
+        {
+            DialogResult = true;
         }
     }
 

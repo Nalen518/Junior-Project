@@ -38,6 +38,34 @@ public partial class CityCard : UserControl
         typeof(CityCard),
         new PropertyMetadata(null)
     );
+
+    public static readonly DependencyProperty ZScoreProperty = DependencyProperty.Register(
+        nameof(ZScore),
+        typeof(double?),
+        typeof(CityCard),
+        new PropertyMetadata(null)
+    );
+
+    public static readonly DependencyProperty ActionTextProperty = RegisterTextProperty(
+        nameof(ActionText)
+    );
+
+    /// <summary>Raised by the card's action button (for example Build baseline).</summary>
+    public event EventHandler? ActionClicked;
+
+    public double? ZScore
+    {
+        get => (double?)GetValue(ZScoreProperty);
+        set => SetValue(ZScoreProperty, value);
+    }
+
+    /// <summary>Empty hides the action button.</summary>
+    public string ActionText
+    {
+        get => (string)GetValue(ActionTextProperty);
+        set => SetValue(ActionTextProperty, value);
+    }
+
     public string CityName
     {
         get => (string)GetValue(CityNameProperty);
@@ -88,6 +116,13 @@ public partial class CityCard : UserControl
     private void CityCardButton_Click(object sender, RoutedEventArgs e)
     {
         CityClicked?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ActionButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Stop the click bubbling to the card button, which would open city detail.
+        e.Handled = true;
+        ActionClicked?.Invoke(this, EventArgs.Empty);
     }
 
     private static DependencyProperty RegisterTextProperty(string name, string defaultValue = "")
