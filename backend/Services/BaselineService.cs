@@ -16,8 +16,8 @@ public class BaselineService : IBaselineService
     public const int StartYear = 1995;
     public const int EndYear = 2024;
 
-    /// <summary>Wind is left out of v1 scoring, so only these get baselines.</summary>
-    public static readonly MetricType[] ScoredMetrics = [MetricType.Temperature, MetricType.Precipitation];
+    /// <summary>Every metric that is scored, in the order the UI shows them.</summary>
+    public static readonly MetricType[] ScoredMetrics = [MetricType.Temperature, MetricType.Precipitation, MetricType.WindSpeed];
 
     private static readonly DateTime From = ParseDate(WeatherService.ArchiveStartDate);
     private static readonly DateTime To = ParseDate(WeatherService.ArchiveEndDate);

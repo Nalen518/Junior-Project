@@ -95,7 +95,7 @@ public class BaselineServiceDatabaseTests
         var result = await Service(handler).RefreshAsync(_city.Id, new SyncProgress(reported));
 
         Assert.Equal(0, handler.Calls);
-        Assert.Equal(2, result.Count);   // October, for temperature and precipitation
+        Assert.Equal(3, result.Count);   // October, for temperature, precipitation and wind
         Assert.All(result, b => Assert.Equal((10, 6.0, 1.0, 3), (b.Month, b.Mean, b.StdDev, b.SampleSize)));
         Assert.Equal([10, 60, 100], reported);
         Assert.Equal(result.OrderBy(b => b.Metric), await Service(NoNetwork).ListAsync(_city.Id));
@@ -113,7 +113,7 @@ public class BaselineServiceDatabaseTests
         var result = await Service(handler).RefreshAsync(_city.Id);
 
         Assert.Equal(1, handler.Calls);
-        Assert.Equal([27.0, 15.0], result.OrderBy(b => b.Metric).Select(b => b.Mean));
+        Assert.Equal([27.0, 15.0, 5.5], result.OrderBy(b => b.Metric).Select(b => b.Mean));
         Assert.Single(await Service(NoNetwork).ListAsync(_city.Id, MetricType.Precipitation));
 
         await Service(NoNetwork).RefreshAsync(_city.Id);   // second refresh reads the database only
