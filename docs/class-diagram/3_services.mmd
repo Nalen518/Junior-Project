@@ -10,45 +10,14 @@ direction TB
   class PrecipitationStrategy {
     +Evaluate(double observed, Baseline baseline) AnomalyResult
   }
-  class WindStrategy {
-    +Evaluate(double observed, Baseline baseline) AnomalyResult
-  }
-  class IBaselineService {
-    <<interface>>
-    +ListAsync(int cityId, MetricType? metric) Task
-    +RefreshAsync(int cityId, IProgress<int> progress) Task
-  }
-  class IMonitoringService {
-    <<interface>>
-    +RefreshCityAsync(int cityId) Task
-  }
-  class IDashboardService {
-    <<interface>>
-    +GetAsync(int profileId) Task
-  }
-  class BaselineService {
-    +ListAsync(int cityId, MetricType? metric) Task
-    +RefreshAsync(int cityId, IProgress<int> progress) Task
-  }
-  class MonitoringService {
-    +RefreshCityAsync(int cityId) Task
-  }
-  class DashboardService {
-    +GetAsync(int profileId) Task
-  }
-  class CityRefreshState {
-    +Begin(int cityId, string cityName) IDisposable
-    +SaveLatest(RefreshResultDto result) void
-    +GetLatest(int cityId) RefreshResultDto
-  }
   class WeatherService {
-    +FetchTodayAsync(City city) Task
+    +FetchLiveAsync(City city) Task
     +FetchArchiveAsync(City city) Task
   }
   class AnomalyDetectionService {
+    +AnalyzeCityAsync(City city) Task~AnomalyResult~
     +Evaluate(double observed, Baseline baseline) AnomalyResult
     +AssignTier(double zScore) SeverityTier
-    +DecideEvent(AnomalyEvent openEvent, double zScore) EventAction
   }
   class AdvisoryService {
     +GetLatest(MetricType metric, SeverityTier tier, string locale) List~Advisory~
@@ -75,27 +44,8 @@ direction TB
     +GetByCityMetricMonth(int cityId, MetricType metric, int month) Baseline
     +Upsert(Baseline item) void
   }
-  class CityRepository {
-    +GetById(int id) City
-    +GetWatchedBy(int profileId) List~City~
-  }
-  class HistoricalObservationRepository {
-    +AddRange(IEnumerable items) int
-    +GetRange(int cityId, MetricType metric, DateTime from, DateTime to) List~HistoricalObservation~
-  }
-  class UserProfileRepository {
-    +GetById(int id) UserProfile
-  }
-  class WatchlistRepository {
-    +GetByProfile(int profileId) List~WatchlistEntry~
-  }
-  class AdvisoryRepository {
-    +GetLatest(MetricType metric, SeverityTier tier, string locale) List~Advisory~
-  }
   class AnomalyEventRepository {
     +GetOpenEvent(int cityId, MetricType metric) AnomalyEvent
-    +Add(AnomalyEvent item) void
-    +UpdatePeak(int eventId, SeverityTier tier, DateTime atUtc, double observed, double zScore) void
     +Close(int eventId, DateTime endedAtUtc) bool
     +ExportCsv(string filePath) void
     +ExportJson(string filePath) void
@@ -103,29 +53,8 @@ direction TB
 
 IAnomalyStrategy <|.. TemperatureStrategy
 IAnomalyStrategy <|.. PrecipitationStrategy
-IAnomalyStrategy <|.. WindStrategy
 IAnomalyStrategy ..> AnomalyResult
 IAnomalyStrategy ..> Baseline
-IBaselineService <|.. BaselineService
-IMonitoringService <|.. MonitoringService
-IDashboardService <|.. DashboardService
-BaselineService --> CityRepository
-BaselineService --> HistoricalObservationRepository
-BaselineService --> BaselineRepository
-BaselineService --> WeatherService
-BaselineService --> CityRefreshState
-MonitoringService --> CityRepository
-MonitoringService --> BaselineRepository
-MonitoringService --> AnomalyEventRepository
-MonitoringService --> WeatherService
-MonitoringService --> AnomalyDetectionService
-MonitoringService --> AdvisoryService
-MonitoringService --> CityRefreshState
-DashboardService --> UserProfileRepository
-DashboardService --> WatchlistRepository
-DashboardService --> CityRepository
-DashboardService --> CityRefreshState
-CityRefreshState ..> RefreshResultDto
 AnomalyDetectionService "1" --> "*" IAnomalyStrategy : one per MetricType
 AnomalyDetectionService --> WeatherService
 AnomalyDetectionService --> BaselineRepository
