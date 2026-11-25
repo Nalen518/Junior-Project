@@ -14,11 +14,11 @@ GROUP LEADER : NALEN RADITYA SADEWA - 536801
 
 PROJECT STRUCTURE (monorepo)
 
-ClimaPulse is a Windows desktop app built with Windows Forms. Everything runs in one program on .NET 10. There is no web server.
+ClimaPulse is a Windows desktop app built with WPF. Everything runs in one program on .NET 10. There is no web server.
 
 ```
 .
-|-- frontend/    ClimaPulse.Desktop: Windows Forms app (Windows only)
+|-- frontend/    ClimaPulse.Desktop: WPF app (Windows only)
 |   `-- State/          DashboardState.cs (UI state shared by screens)
 |-- backend/     ClimaPulse.Backend: services, repositories, WeatherService, PostgreSQL
 |   |-- Database/       schema.sql, seed.sql, schema.dbml
