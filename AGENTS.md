@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository. Humans: the long v
 
 ClimaPulse is a Windows desktop app (Windows Forms) that compares live weather against 30-year historical baselines (z-score) to detect climate anomalies, show a multi-city watchlist, give advisories and keep a historical anomaly ledger. It is a university group project (UGM DTETI, group "Mendoan").
 
-- Frontend: Windows Forms (`Form` and `UserControl` screens) in `frontend/` (Windows only). Blazor, Razor and WPF are not allowed for the UI.
+- Frontend: Windows Forms (`Form` and `UserControl` screens) in `frontend/` (Windows only). Blazor, Razor are not allowed for the UI.
 - Backend: services, repositories and `WeatherService` in `backend/` (a class library, no web server)
 - Contract between them: interfaces, DTOs, enums and exceptions in `shared/ClimaPulse.Contracts` (once created). Read `docs/api-contract.md` before touching a service, DTO or component.
 - Database: PostgreSQL through Npgsql, schema in `backend/Database/schema.sql`. Connection string from `CLIMAPULSE_DB_CONNECTION` (see `backend/.env.example`).

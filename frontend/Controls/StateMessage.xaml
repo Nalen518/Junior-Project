@@ -1,0 +1,29 @@
+<UserControl x:Class="ClimaPulse.Desktop.Controls.StateMessage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+
+    <Border Padding="28"
+            Background="White"
+            BorderBrush="#D9E2E8"
+            BorderThickness="1"
+            CornerRadius="8">
+
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            <TextBlock x:Name="TitleText"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#1F2933"
+                       HorizontalAlignment="Center" />
+
+            <TextBlock x:Name="MessageText"
+                       Margin="0,8,0,0"
+                       MaxWidth="360"
+                       FontSize="12"
+                       Foreground="#65737E"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+    </Border>
+</UserControl>
