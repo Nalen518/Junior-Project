@@ -126,8 +126,14 @@ public class WeatherService
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
                 throw new UpstreamException("Open-Meteo limit reached. Try again in a minute.", cityId);
             if (!response.IsSuccessStatusCode)
-                // shortcut: the 400 "reason" is not logged yet (no logger in the backend), add it with the log file.
-                throw new UpstreamException($"Open-Meteo returned an error ({(int)response.StatusCode}).", cityId);
+            {
+                // The user sees a plain message; Open-Meteo's own reason (for a 400 it names our bad
+                // parameter) rides in the inner exception so the app's error log keeps it.
+                var reason = ErrorReason(await response.Content.ReadAsStringAsync(ct));
+                throw new UpstreamException(
+                    $"Open-Meteo returned an error ({(int)response.StatusCode}).", cityId,
+                    new HttpRequestException($"Open-Meteo HTTP {(int)response.StatusCode}: {reason}", null, response.StatusCode));
+            }
             return await response.Content.ReadAsStringAsync(ct);
         }
         catch (HttpRequestException e)
@@ -138,6 +144,28 @@ public class WeatherService
         {
             throw new UpstreamException("Open-Meteo did not answer in time.", cityId, e);
         }
+    }
+
+    /// <summary>
+    /// The "reason" of an Open-Meteo error body such as {"error":true,"reason":"..."},
+    /// or the start of the body when it is not that JSON.
+    /// </summary>
+    public static string ErrorReason(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("reason", out var reason) && reason.ValueKind == JsonValueKind.String)
+                return reason.GetString()!;
+        }
+        catch (JsonException)
+        {
+            // Not JSON (for example an HTML error page from a proxy): fall through to the raw text.
+        }
+
+        var text = body.Trim();
+        return text.Length == 0 ? "(no body)" : text[..Math.Min(text.Length, 200)];
     }
 
     private static T Parse<T>(Func<T> parse, int? cityId)
