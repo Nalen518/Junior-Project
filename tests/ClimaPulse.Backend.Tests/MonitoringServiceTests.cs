@@ -47,12 +47,12 @@ public class MonitoringServiceDatabaseTests
         }
     }
 
-    /// <summary>Refreshes with a stub forecast for 2026-10-05 (October) giving this temperature and rain.</summary>
-    private Task<RefreshResultDto> Refresh(double? temperature, double? rain = 1.0, int? cityId = null)
+    /// <summary>Refreshes with a stub forecast for 2026-10-05 (October) giving this temperature, rain and wind.</summary>
+    private Task<RefreshResultDto> Refresh(double? temperature, double? rain = 1.0, int? cityId = null, double? wind = 5.0)
     {
         static string Json(double? v) => v?.ToString(CultureInfo.InvariantCulture) ?? "null";
         var body = """{"daily":{"time":["2026-10-05"],"temperature_2m_mean":[""" + Json(temperature) +
-                   """],"precipitation_sum":[""" + Json(rain) + """],"wind_speed_10m_max":[5.0]}}""";
+                   """],"precipitation_sum":[""" + Json(rain) + """],"wind_speed_10m_max":[""" + Json(wind) + "]}}";
 
         var baselines = new BaselineRepository(_connection);
         var service = new MonitoringService(
@@ -65,6 +65,7 @@ public class MonitoringServiceDatabaseTests
                 {
                     [MetricType.Temperature] = new TemperatureStrategy(),
                     [MetricType.Precipitation] = new PrecipitationStrategy(),
+                    [MetricType.WindSpeed] = new WindStrategy(),
                 },
                 new WeatherService(new HttpClient(), new OpenMeteoOptions()), baselines, new AnomalyEventRepository(_connection)),
             new AdvisoryService(new AdvisoryRepository(_connection)),
@@ -127,8 +128,8 @@ public class MonitoringServiceDatabaseTests
     [Fact]
     public async Task Readings_that_cannot_be_scored_get_a_status_and_no_tier()
     {
-        var noData = await Refresh(null, rain: null);
-        Assert.Equal([DataStatus.NoData, DataStatus.NoData], noData.Metrics.Select(m => m.DataStatus));
+        var noData = await Refresh(null, rain: null, wind: null);
+        Assert.Equal([DataStatus.NoData, DataStatus.NoData, DataStatus.NoData], noData.Metrics.Select(m => m.DataStatus));
 
         var noBaseline = await Refresh(28.0, rain: 5.0);
         var rain = noBaseline.Metrics.Single(m => m.Metric == MetricType.Precipitation);
@@ -141,6 +142,26 @@ public class MonitoringServiceDatabaseTests
         var flat = (await Refresh(35.0)).Metrics.Single(m => m.Metric == MetricType.Temperature);
         Assert.Equal((DataStatus.ZeroVariance, (double?)null, (SeverityTier?)null), (flat.DataStatus, flat.ZScore, flat.Tier));
         Assert.Empty(Events());
+    }
+
+    [Fact]
+    public async Task Wind_is_the_third_metric_and_opens_an_event_without_seeded_advisories()
+    {
+        new BaselineRepository(_connection).Add(new Baseline
+        {
+            CityId = _city.Id, MetricType = MetricType.WindSpeed, Month = 10, MeanValue = 10.0, StdDevValue = 2.0,
+            SampleSize = 930, BaselineStartYear = 1995, BaselineEndYear = 2024
+        });
+
+        var result = await Refresh(28.0, wind: 16.0);   // wind z = 3.0, Warning
+
+        Assert.Equal([MetricType.Temperature, MetricType.Precipitation, MetricType.WindSpeed], result.Metrics.Select(m => m.Metric));
+        var wind = result.Metrics[2];
+        Assert.Equal((DataStatus.Ok, 3.0, SeverityTier.Warning), (wind.DataStatus, wind.ZScore!.Value, wind.Tier!.Value));
+        Assert.Empty(wind.Advisories);   // seed.sql has no wind advisories; that must not fail the refresh
+
+        var e = Assert.Single(Events());
+        Assert.Equal((MetricType.WindSpeed, (int?)null, wind.ActiveEventId), (e.MetricType, e.AdvisoryId, (int?)e.Id));
     }
 
     [Fact]

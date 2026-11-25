@@ -61,6 +61,7 @@ public class MonitoringService : IMonitoringService
         {
             Read(city.Id, MetricType.Temperature, today.Temperature, today.LocalDate.Month, now),
             Read(city.Id, MetricType.Precipitation, today.Precipitation, today.LocalDate.Month, now),
+            Read(city.Id, MetricType.WindSpeed, today.WindSpeed, today.LocalDate.Month, now),
         }, ct);
 
         var result = new RefreshResultDto(city.Id, now, metrics);
