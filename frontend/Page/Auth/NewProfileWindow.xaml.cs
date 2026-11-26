@@ -33,7 +33,7 @@ public partial class NewProfileWindow : Window
 
         if (name.Length is < 1 or > 50)
         {
-            ShowError("Enter a name between 1 and 50 characters.");
+            ShowError($"Enter a name between 1 and 50 characters. This one has {name.Length}.");
             return;
         }
 
