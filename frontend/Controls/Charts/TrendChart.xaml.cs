@@ -26,7 +26,7 @@ public partial class TrendChart : UserControl
         set => SetValue(MetricProperty, value);
     }
 
-    /// <summary>Daily values, oldest first. No service provides them yet, so nothing is drawn until set.</summary>
+    /// <summary>Daily values, oldest first (IMonitoringService.GetRecentAsync). Nothing is drawn until set.</summary>
     public IReadOnlyList<double>? Values
     {
         get => (IReadOnlyList<double>?)GetValue(ValuesProperty);

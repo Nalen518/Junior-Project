@@ -281,11 +281,24 @@
                                 Foreground="#1F2933"
                                 Text="Last 14 days" />
 
-                            <!--  No service returns daily history yet, so no chart instead of fake data.  -->
+                            <charts:TrendChart
+                                x:Name="TrendChart"
+                                Height="170"
+                                Margin="0,12,0,0" />
+
+                            <TextBlock
+                                x:Name="TrendSummaryText"
+                                Margin="0,8,0,0"
+                                FontSize="11"
+                                Foreground="#5F6B74"
+                                TextWrapping="Wrap" />
+
                             <controls:StateMessage
-                                Title="History chart is not available yet"
+                                x:Name="TrendStateMessage"
+                                Title="No history to show"
                                 Margin="0,12,0,0"
-                                Message="ClimaPulse does not keep the last 14 days of readings yet." />
+                                Message="Open-Meteo sent no daily values for the last 14 days."
+                                Visibility="Collapsed" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
