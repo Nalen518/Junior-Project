@@ -21,11 +21,14 @@ public partial class LedgerView : UserControl
     private int _page = 1;
     private int _totalPages = 1;
     private bool _loaded;
+    private readonly int? _initialCityId;
 
-    public LedgerView(IEventLedgerService eventLedgerService, ICityService cityService)
+    /// <param name="initialCityId">Preselects this city in the City filter (from City detail).</param>
+    public LedgerView(IEventLedgerService eventLedgerService, ICityService cityService, int? initialCityId = null)
     {
         _eventLedgerService = eventLedgerService;
         _cityService = cityService;
+        _initialCityId = initialCityId;
 
         InitializeComponent();
 
@@ -60,7 +63,9 @@ public partial class LedgerView : UserControl
             // Ledger filtering still works without a populated city list.
         }
 
-        CityFilter.SelectedIndex = 0;
+        CityFilter.SelectedItem =
+            CityFilter.Items.OfType<CityOption>().FirstOrDefault(option => option.Id == _initialCityId)
+            ?? CityFilter.Items[0];
     }
 
     private async Task LoadEventsAsync()

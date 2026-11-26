@@ -443,10 +443,10 @@
                                 HorizontalAlignment="Left"
                                 Background="Transparent"
                                 BorderThickness="0"
+                                Click="OpenLedgerButton_Click"
                                 Content="Open in Anomaly Ledger"
-                                Foreground="#07566B"
-                                IsEnabled="False"
-                                ToolTip="Ledger navigation is the next implementation step." />
+                                Cursor="Hand"
+                                Foreground="#07566B" />
 
                             <Button
                                 Margin="0,12,0,0"

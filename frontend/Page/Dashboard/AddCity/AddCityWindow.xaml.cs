@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ClimaPulse.Contracts;
+using ClimaPulse.Desktop.Ui;
 
 namespace ClimaPulse.Desktop.Page.Dashboard.AddCity;
 
@@ -90,6 +91,7 @@ public partial class AddCityWindow : Window
         }
         catch (ClimaPulseException ex)
         {
+            ErrorLog.Write(ex);
             ShowError(ex.Message);
         }
         catch (Exception)

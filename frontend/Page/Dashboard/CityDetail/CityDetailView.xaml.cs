@@ -19,6 +19,7 @@ public partial class CityDetailView : UserControl
     private readonly IMonitoringService _monitoringService;
     private readonly IBaselineService _baselineService;
     private readonly Action _goBack;
+    private readonly Action<int> _openLedger;
 
     private IReadOnlyList<MetricReadingDto> _metrics;
     private DateTime? _refreshedAt;
@@ -33,7 +34,8 @@ public partial class CityDetailView : UserControl
         IEventLedgerService eventLedgerService,
         IMonitoringService monitoringService,
         IBaselineService baselineService,
-        Action goBack
+        Action goBack,
+        Action<int> openLedger
     )
     {
         _profile = profile;
@@ -45,6 +47,7 @@ public partial class CityDetailView : UserControl
         _monitoringService = monitoringService;
         _baselineService = baselineService;
         _goBack = goBack;
+        _openLedger = openLedger;
 
         InitializeComponent();
 
@@ -162,6 +165,7 @@ public partial class CityDetailView : UserControl
         }
         catch (ClimaPulseException ex)
         {
+            ErrorLog.Write(ex);
             // Keep the old reading on screen (contract 7).
             ServiceErrorPresenter.Show(ex, $"Could not refresh {_city.Name}");
         }
@@ -265,6 +269,7 @@ public partial class CityDetailView : UserControl
         }
         catch (ClimaPulseException ex)
         {
+            ErrorLog.Write(ex);
             if (_metric != metric)
             {
                 return;
@@ -389,6 +394,11 @@ public partial class CityDetailView : UserControl
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
         _goBack();
+    }
+
+    private void OpenLedgerButton_Click(object sender, RoutedEventArgs e)
+    {
+        _openLedger(_city.Id);
     }
 
     private async void RemoveCityButton_Click(object sender, RoutedEventArgs e)

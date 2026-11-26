@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using ClimaPulse.Contracts;
+using ClimaPulse.Desktop.Ui;
 
 namespace ClimaPulse.Desktop.Controls;
 
@@ -32,6 +33,7 @@ public partial class BaselineImportPanel : UserControl
         }
         catch (ClimaPulseException ex)
         {
+            ErrorLog.Write(ex);
             CityText.Text = $"The baseline for {city.Name} is not ready.";
             ErrorText.Text =
                 $"{ex.Message} {city.Name} stays on your watchlist. Use Build baseline on its card to try again.";

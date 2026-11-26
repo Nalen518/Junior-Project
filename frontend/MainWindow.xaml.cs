@@ -77,10 +77,10 @@ public partial class MainWindow : Window
         SetSelectedButton(DashboardButton);
     }
 
-    private void ShowLedger()
+    private void ShowLedger(int? cityId = null)
     {
         PageTitleText.Text = "Anomaly Ledger";
-        PageContent.Content = new LedgerView(_eventLedgerService, _cityService);
+        PageContent.Content = new LedgerView(_eventLedgerService, _cityService, cityId);
 
         SetSelectedButton(LedgerButton);
     }
@@ -136,7 +136,8 @@ public partial class MainWindow : Window
             _eventLedgerService,
             _monitoringService,
             _baselineService,
-            ShowDashboard
+            ShowDashboard,
+            cityId => ShowLedger(cityId)
         );
     }
 

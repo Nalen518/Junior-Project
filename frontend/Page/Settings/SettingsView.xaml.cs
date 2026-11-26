@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using ClimaPulse.Contracts;
+using ClimaPulse.Desktop.Ui;
 using ClimaPulse.Desktop.Controls;
 using ClimaPulse.Enums;
 
@@ -120,6 +121,7 @@ public partial class SettingsView : UserControl
                 }
                 catch (ClimaPulseException ex)
                 {
+                    ErrorLog.Write(ex);
                     errors.Add($"{city.Name}: {ex.Message}");
                 }
             }

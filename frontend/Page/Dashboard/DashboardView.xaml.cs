@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using ClimaPulse.Contracts;
+using ClimaPulse.Desktop.Ui;
 using ClimaPulse.Desktop.Controls;
 using ClimaPulse.Desktop.Formatting;
 using ClimaPulse.Desktop.Page.Dashboard.AddCity;
@@ -137,6 +138,7 @@ public partial class DashboardView : UserControl
             }
             catch (UpstreamException ex)
             {
+                ErrorLog.Write(ex);
                 // Only an Open-Meteo failure marks the card as Error.
                 _failedCityIds.Add(city.Id);
                 errors.Add($"{city.Name}: {ex.Message}");
