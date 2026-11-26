@@ -72,20 +72,21 @@
                         Text="{Binding SecondaryText, ElementName=Root}"
                         TextWrapping="Wrap" />
 
-                    <charts:BellCurveChart
+                    <charts:DashboardBellCurve
                         Height="54"
                         Margin="0,6,0,0"
+                        Tier="{Binding Tier, ElementName=Root}"
                         ZScore="{Binding ZScore, ElementName=Root}">
-                        <charts:BellCurveChart.Style>
-                            <Style TargetType="charts:BellCurveChart">
+                        <charts:DashboardBellCurve.Style>
+                            <Style TargetType="charts:DashboardBellCurve">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ZScore, ElementName=Root}" Value="{x:Null}">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </charts:BellCurveChart.Style>
-                    </charts:BellCurveChart>
+                        </charts:DashboardBellCurve.Style>
+                    </charts:DashboardBellCurve>
 
                     <Button
                         Margin="0,10,0,0"

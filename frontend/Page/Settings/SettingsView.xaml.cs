@@ -60,10 +60,25 @@ public partial class SettingsView : UserControl
         {
             var cities = await _watchlistService.ListAsync(_profile.Id);
 
-            CityCountText.Text =
-                cities.Count == 1
-                    ? "1 city on this profile"
-                    : $"{cities.Count} cities on this profile";
+            CityCountText.Text = cities.Count switch
+            {
+                0 => "No cities on this profile",
+                1 => "1 city on this profile",
+                _ => $"{cities.Count} cities on this profile",
+            };
+
+            // First choice refreshes every city (Tag null); the rest pick one city.
+            BaselineCityComboBox.Items.Clear();
+            BaselineCityComboBox.Items.Add(new ComboBoxItem { Content = "All cities" });
+
+            foreach (var entry in cities)
+            {
+                BaselineCityComboBox.Items.Add(new ComboBoxItem { Content = entry.City.Name, Tag = entry.City });
+            }
+
+            BaselineCityComboBox.SelectedIndex = 0;
+            NoCitiesText.Visibility = cities.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            RefreshBaselinesButton.IsEnabled = cities.Count > 0;
         }
         catch
         {
@@ -75,11 +90,14 @@ public partial class SettingsView : UserControl
     private async void RefreshBaselinesButton_Click(object sender, RoutedEventArgs e)
     {
         RefreshBaselinesButton.IsEnabled = false;
+        BaselineCityComboBox.IsEnabled = false;
         BaselineErrorText.Text = string.Empty;
 
         try
         {
-            var entries = await _watchlistService.ListAsync(_profile.Id);
+            var entries = BaselineCityComboBox.SelectedItem is ComboBoxItem { Tag: CityDto chosen }
+                ? [chosen]
+                : (await _watchlistService.ListAsync(_profile.Id)).Select(entry => entry.City).ToList();
             var errors = new List<string>();
 
             BaselineProgress.Value = 0;
@@ -87,7 +105,7 @@ public partial class SettingsView : UserControl
 
             for (var index = 0; index < entries.Count; index++)
             {
-                var city = entries[index].City;
+                var city = entries[index];
                 var done = index;
                 BaselineStatusText.Text = $"Refreshing {index + 1} of {entries.Count} cities · {city.Name}";
 
@@ -118,6 +136,7 @@ public partial class SettingsView : UserControl
         finally
         {
             RefreshBaselinesButton.IsEnabled = true;
+            BaselineCityComboBox.IsEnabled = true;
         }
     }
 
@@ -132,7 +151,7 @@ public partial class SettingsView : UserControl
 
         if (name.Length is < 1 or > 50)
         {
-            NameErrorText.Text = "Enter a display name from 1 to 50 characters.";
+            NameErrorText.Text = $"Enter a display name from 1 to 50 characters. This one has {name.Length}.";
 
             NameErrorText.Visibility = Visibility.Visible;
             return;

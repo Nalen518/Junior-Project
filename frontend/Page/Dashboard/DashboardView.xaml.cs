@@ -123,6 +123,7 @@ public partial class DashboardView : UserControl
     private async Task RefreshCitiesAsync(IReadOnlyList<CityDto> cities)
     {
         RefreshButton.IsEnabled = false;
+        RefreshButton.Content = "Refreshing…";
 
         var errors = new List<string>();
         DateTime? refreshedAt = null;
@@ -148,6 +149,7 @@ public partial class DashboardView : UserControl
         }
 
         await LoadCitiesAsync();
+        RefreshButton.Content = "Refresh all";
 
         if (errors.Count > 0)
         {

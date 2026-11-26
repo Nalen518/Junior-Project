@@ -162,7 +162,6 @@
                                 x:Name="DisplayNameTextBox"
                                 Margin="0,7,0,0"
                                 Padding="8,5"
-                                MaxLength="50"
                                 TextChanged="DisplayNameTextBox_TextChanged" />
 
                             <TextBlock
@@ -220,12 +219,32 @@
                                 Foreground="#1F2933"
                                 Text="Loading city count…" />
 
+                            <TextBlock
+                                Margin="0,14,0,0"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933"
+                                Text="Refresh baseline for" />
+
+                            <ComboBox x:Name="BaselineCityComboBox" Margin="0,7,0,0" />
+
+                            <TextBlock
+                                x:Name="NoCitiesText"
+                                Margin="0,7,0,0"
+                                FontSize="10"
+                                Foreground="#82919C"
+                                Text="Add a city before refreshing its climate baseline."
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+
                             <Button
                                 x:Name="RefreshBaselinesButton"
-                                Margin="0,14,0,0"
+                                Margin="0,12,0,0"
                                 HorizontalAlignment="Left"
                                 Click="RefreshBaselinesButton_Click"
-                                Content="Refresh baselines" />
+                                Content="Refresh baseline"
+                                IsEnabled="False"
+                                ToolTip="Recalculate the 30-year climate baseline." />
 
                             <TextBlock
                                 x:Name="BaselineStatusText"
