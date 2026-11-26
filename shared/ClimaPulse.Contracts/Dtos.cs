@@ -108,7 +108,8 @@ public sealed record AnomalyEventDto(
     double BaselineMeanSnapshot,
     double BaselineStdDevSnapshot,
     EventStatus Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? AdvisoryTitle = null);          // title of the advisory version stored on the event; null when AdvisoryId is null
 
 public sealed record PagedResult<T>(
     IReadOnlyList<T> Items,

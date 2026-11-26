@@ -136,8 +136,8 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 | FR-12 | Temperature anomalies are supported first. | Must | The temperature strategy is complete and tested. |
 | FR-13 | Precipitation anomalies are supported. | Should | Precipitation strategy complete and tested, with the known limits of rain data documented (skewed distribution, many zero values). |
 | FR-14 | Wind speed anomalies are supported. | Could | Wind strategy added using the same strategy interface. |
-| FR-15 | The system finds the "climate twin" city whose normal climate matches today's anomaly. | Could | `ClimateTwinEngine` returns a city from the candidate list and the UI shows it. |
-| FR-16 | The system estimates impact values (cooling degree days, wet-bulb temperature). | Could | `ImpactEstimatorService` formulas are verified against a known example. |
+| FR-15 | The system finds the "climate twin" city whose normal climate matches today's anomaly. | Could (future work, not in v1) | `ClimateTwinEngine` returns a city from the candidate list and the UI shows it. |
+| FR-16 | The system estimates impact values (cooling degree days, wet-bulb temperature). | Could (future work, not in v1) | `ImpactEstimatorService` formulas are verified against a known example. |
 
 ### 3.4 Dashboard and advisories
 
@@ -245,6 +245,8 @@ Targets are starting points. The team should confirm them after measuring.
 - Real-time streaming. Readings are fetched on refresh or on a timer.
 - Advisory editing screen (advisories come from `seed.sql`).
 - Commercial use of Open-Meteo data.
+
+Future work: the two "Could" requirements FR-15 (climate twin) and FR-16 (impact estimates: cooling degree days, wet-bulb temperature) are not built in v1. `ClimateTwinEngine.FindTwin` and the two `ImpactEstimatorService` methods are placeholders that throw `NotImplementedException`; no service or screen calls them, so the app never reaches them. They stay in the code and class diagrams as the planned extension points. Wet-bulb temperature also needs relative humidity, which v1 does not fetch (`docs/api-contract.md` 14.8).
 
 ---
 

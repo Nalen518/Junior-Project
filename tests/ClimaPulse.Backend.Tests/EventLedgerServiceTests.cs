@@ -53,14 +53,25 @@ public class EventLedgerServiceDatabaseTests
     private readonly AnomalyEventRepository _events;
     private readonly int _cityId;
     private readonly int _baselineId;
+    private readonly int _advisoryId;
 
     public EventLedgerServiceDatabaseTests(TestDatabase db)
     {
         db.Reset();
         var cities = new CityRepository(db.ConnectionString);
         var baselines = new BaselineRepository(db.ConnectionString);
+        var advisories = new AdvisoryRepository(db.ConnectionString);
         _events = new AnomalyEventRepository(db.ConnectionString);
-        _service = new EventLedgerService(_events, cities);
+        _service = new EventLedgerService(_events, cities, advisories);
+
+        // A comma in the title checks CSV quoting of the new column.
+        var advisory = new Advisory
+        {
+            MetricType = MetricType.Temperature, SeverityTier = SeverityTier.Warning, Category = AdvisoryCategory.Health,
+            Title = "Heat, stay inside", Body = "Body"
+        };
+        advisories.Add(advisory);
+        _advisoryId = advisory.Id;
 
         // A comma and a quote in the name check CSV quoting.
         var city = new City
@@ -80,11 +91,12 @@ public class EventLedgerServiceDatabaseTests
 
     private static DateTime Utc(int day) => new(2026, 10, day, 5, 0, 0, DateTimeKind.Utc);
 
-    private AnomalyEvent AddEvent(SeverityTier tier, int day)
+    private AnomalyEvent AddEvent(SeverityTier tier, int day, bool withAdvisory = false)
     {
         var e = new AnomalyEvent
         {
-            CityId = _cityId, BaselineId = _baselineId, MetricType = MetricType.Temperature, SeverityTier = tier,
+            CityId = _cityId, BaselineId = _baselineId, AdvisoryId = withAdvisory ? _advisoryId : null,
+            MetricType = MetricType.Temperature, SeverityTier = tier,
             StartedAt = Utc(day), PeakAt = Utc(day), PeakObservedValue = 33.25, PeakZScore = 3.5,
             BaselineMeanSnapshot = 28.0, BaselineStdDevSnapshot = 1.5, CreatedAt = Utc(day)
         };
@@ -125,31 +137,48 @@ public class EventLedgerServiceDatabaseTests
     }
 
     [Fact]
+    public async Task The_advisory_title_is_filled_and_null_when_the_event_has_no_advisory()
+    {
+        var withAdvisory = AddEvent(SeverityTier.Warning, 1, withAdvisory: true);
+        var without = AddEvent(SeverityTier.Watch, 2);
+
+        var listed = (await _service.ListAsync(new EventQuery())).Items.ToDictionary(e => e.Id);
+
+        Assert.Equal((_advisoryId, "Heat, stay inside"), (listed[withAdvisory.Id].AdvisoryId, listed[withAdvisory.Id].AdvisoryTitle));
+        Assert.Equal(((int?)null, (string?)null), (listed[without.Id].AdvisoryId, listed[without.Id].AdvisoryTitle));
+        Assert.Equal("Heat, stay inside", (await _service.GetAsync(withAdvisory.Id)).AdvisoryTitle);
+    }
+
+    [Fact]
     public async Task Csv_export_uses_the_contract_format_even_on_Indonesian_Windows()
     {
-        var e = AddEvent(SeverityTier.Warning, 1);
+        var e = AddEvent(SeverityTier.Warning, 1, withAdvisory: true);
         _events.Close(e.Id, Utc(2));
-        AddEvent(SeverityTier.Watch, 3);
+        var noAdvisory = AddEvent(SeverityTier.Watch, 3);
+        _events.Close(noAdvisory.Id, Utc(4));
 
         var csv = await ExportOnIndonesianWindows(new EventQuery(Status: EventStatus.Closed), ExportFormat.Csv);
 
         var lines = csv.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal(2, lines.Length);   // header + the one closed event
-        Assert.Equal("id,cityId,cityName,baselineId,advisoryId,metric,tier,startedAt,endedAt,peakAt,peakObservedValue,peakZScore,baselineMeanSnapshot,baselineStdDevSnapshot,status,createdAt", lines[0]);
+        Assert.Equal(3, lines.Length);   // header + the two closed events, newest first
+        Assert.Equal("id,cityId,cityName,baselineId,advisoryId,metric,tier,startedAt,endedAt,peakAt,peakObservedValue,peakZScore,baselineMeanSnapshot,baselineStdDevSnapshot,status,createdAt,advisoryTitle", lines[0]);
         Assert.Equal(
-            $"{e.Id},{_cityId},\"Kota \"\"Gudeg\"\", Yogyakarta\",{_baselineId},,temperature_2m,warning," +
-            "2026-10-01T05:00:00Z,2026-10-02T05:00:00Z,2026-10-01T05:00:00Z,33.25,3.5,28,1.5,closed,2026-10-01T05:00:00Z",
-            lines[1]);
+            $"{e.Id},{_cityId},\"Kota \"\"Gudeg\"\", Yogyakarta\",{_baselineId},{_advisoryId},temperature_2m,warning," +
+            "2026-10-01T05:00:00Z,2026-10-02T05:00:00Z,2026-10-01T05:00:00Z,33.25,3.5,28,1.5,closed,2026-10-01T05:00:00Z," +
+            "\"Heat, stay inside\"",
+            lines[2]);
+        Assert.EndsWith(",closed,2026-10-03T05:00:00Z,", lines[1]);   // no advisory: empty id and title
     }
 
     [Fact]
     public async Task Json_export_has_camelCase_names_text_enums_and_dot_decimals()
     {
-        AddEvent(SeverityTier.Extreme, 1);
+        AddEvent(SeverityTier.Extreme, 1, withAdvisory: true);
 
         var json = await ExportOnIndonesianWindows(new EventQuery(), ExportFormat.Json);
 
         var item = Assert.Single(JsonDocument.Parse(json).RootElement.EnumerateArray());
+        Assert.Equal("Heat, stay inside", item.GetProperty("advisoryTitle").GetString());
         Assert.Equal("extreme", item.GetProperty("tier").GetString());
         Assert.Equal("temperature_2m", item.GetProperty("metric").GetString());
         Assert.Equal("active", item.GetProperty("status").GetString());
