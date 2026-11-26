@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ClimaPulse.Contracts;
+using ClimaPulse.Desktop.Ui;
 
 namespace ClimaPulse.Desktop.Page.Auth;
 
@@ -95,6 +96,7 @@ public partial class FirstCityWindow : Window
         }
         catch (ClimaPulseException ex)
         {
+            ErrorLog.Write(ex);
             StatusText.Text = string.Empty;
             ShowError(ex.Message);
         }

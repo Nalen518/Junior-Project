@@ -121,29 +121,7 @@ public partial class App : Application
         e.Handled = true;
     }
 
-    /// <summary>Appends to %LOCALAPPDATA%\ClimaPulse\logs\error.log. Never throws.</summary>
-    private static void LogError(object? exception)
-    {
-        try
-        {
-            var folder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ClimaPulse",
-                "logs"
-            );
-
-            Directory.CreateDirectory(folder);
-
-            File.AppendAllText(
-                Path.Combine(folder, "error.log"),
-                $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ} {exception}{Environment.NewLine}{Environment.NewLine}"
-            );
-        }
-        catch (Exception)
-        {
-            // Logging must never crash the app.
-        }
-    }
+    private static void LogError(object? exception) => ErrorLog.Write(exception);
 
     private async Task<bool> OpenProfileSessionAsync(Window? owner = null)
     {
