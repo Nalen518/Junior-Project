@@ -48,6 +48,30 @@ public class WeatherServiceTests
     }
 
     [Fact]
+    public void Recent_days_add_past_days_to_the_forecast_url_and_today_does_not()
+    {
+        var recent = WeatherService.BuildTodayUrl(new Uri(Options.ForecastBaseUrl), Yogyakarta, pastDays: 13);
+        var today = WeatherService.BuildTodayUrl(new Uri(Options.ForecastBaseUrl), Yogyakarta);
+
+        Assert.Contains("&forecast_days=1&past_days=13&", recent);
+        Assert.DoesNotContain("past_days", today);
+    }
+
+    [Fact]
+    public void ParseDays_reads_every_day_oldest_first_and_keeps_nulls()
+    {
+        const string json = """
+            {"daily":{"time":["2026-11-11","2026-11-12"],
+                      "temperature_2m_mean":[27.5,null],"precipitation_sum":[0.0,12.4],"wind_speed_10m_max":[8.1,9.0]}}
+            """;
+
+        var days = WeatherService.ParseDays(json);
+
+        Assert.Equal([new DateOnly(2026, 11, 11), new DateOnly(2026, 11, 12)], days.Select(d => d.LocalDate));
+        Assert.Equal(new TodayReading(new DateOnly(2026, 11, 12), null, 12.4, 9.0), days[1]);
+    }
+
+    [Fact]
     public void Urls_always_send_the_city_time_zone()
     {
         var today = WeatherService.BuildTodayUrl(new Uri(Options.ForecastBaseUrl), Yogyakarta);
@@ -116,6 +140,28 @@ public class WeatherServiceTests
         var ex = await Assert.ThrowsAsync<UpstreamException>(() => service.FetchTodayAsync(Yogyakarta));
 
         Assert.Equal(7, ex.CityId);
+    }
+
+    [Fact]
+    public async Task An_HTTP_400_keeps_Open_Meteo_reason_for_the_log_but_not_in_the_user_message()
+    {
+        const string body = """{"error":true,"reason":"Cannot initialize WeatherVariable from invalid String value tempeture_2m."}""";
+        var service = new WeatherService(new HttpClient(new StubHandler(HttpStatusCode.BadRequest, body)), Options);
+
+        var ex = await Assert.ThrowsAsync<UpstreamException>(() => service.FetchTodayAsync(Yogyakarta));
+
+        Assert.Equal("Open-Meteo returned an error (400).", ex.Message);
+        Assert.Equal("Open-Meteo HTTP 400: Cannot initialize WeatherVariable from invalid String value tempeture_2m.", ex.InnerException?.Message);
+        Assert.Contains("tempeture_2m", ex.ToString());   // what the error log writes
+    }
+
+    [Theory]
+    [InlineData("""{"error":true,"reason":"bad latitude"}""", "bad latitude")]
+    [InlineData("<html>502 Bad Gateway</html>", "<html>502 Bad Gateway</html>")]
+    [InlineData("  ", "(no body)")]
+    public void ErrorReason_reads_the_JSON_reason_or_falls_back_to_the_text(string body, string expected)
+    {
+        Assert.Equal(expected, WeatherService.ErrorReason(body));
     }
 
     [Fact]
