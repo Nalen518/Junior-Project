@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Version | 0.4.5 draft |
-| Date | 2026-11-25 |
+| Version | 0.4.6 draft |
+| Date | 2026-11-26 |
 | Project | ClimaPulse, Junior Project, group "Mendoan", UGM DTETI |
 | Status | For team review. Items marked **OPEN** need a team decision. |
 | Based on | Module 1 project brief and grading criteria, README, Modul 3 class diagram, Modul 4 database (`backend/Database/schema.sql`), design decisions recorded in the project docs |
@@ -275,7 +275,9 @@ Retention: observations and baselines are kept as long as the city exists. Ledge
 | Ledger (FR-22 to FR-28) | AnomalyEvent | `IEventLedgerService`, `AnomalyEventRepository` |
 | Users (FR-29) | UserProfile | `IProfileService`, `UserProfileRepository` |
 
-Known gaps (2026-11-25): the backend services, contract and tests are merged. The WPF screens are built but not yet merged, and the dashboard and city detail are not yet wired to `IDashboardService`, `IMonitoringService`, `IBaselineService` and `IAdvisoryService`. `IMonitoringService.GetRecentAsync` returns the last 14 days for the S4 chart; the chart is not yet wired to it.
+Known gaps (2026-11-26): the WPF screens are wired to every service, including the S4 14-day chart (PR #28). Limitations of v1:
+- NFR-15 is not met: screen text is still in XAML and code-behind, not `.resx` files. Moving it is planned together with the Indonesian translation (UI-5).
+- FR-04: the default alert threshold for new cities is a fixed 2.0. Settings shows it but cannot change it; each city's threshold is changed on its City detail page.
 
 ---
 
@@ -337,5 +339,6 @@ WPF on .NET 10 has no built-in chart control. The bell curve (S4 "Today vs the 3
 | 0.4.3 | 2026-11-21 | English only for v1 (UI-5, FR-05, FR-19, A-3, OPEN-6). Dark theme moved to Won't (FR-21). UI-1 checked in the built app, no 1024 x 640 mockup |
 | 0.4.4 | 2026-11-24 | OPEN-1 decided (tiers 2, 3, 4, close below 1.75, global threshold opens events). OPEN-10 added and decided (backend details) |
 | 0.4.5 | 2026-11-25 | UI changed from Windows Forms to WPF (1.3, C-1, C-3, NFR-15, OPEN-5, OPEN-9). Known gaps updated |
+| 0.4.6 | 2026-11-26 | Known gaps updated: screens wired; NFR-15 and the fixed default threshold (FR-04) stated as v1 limitations |
 | 0.4.2 | 2026-11-21 | OPEN-9 decided: charts drawn by hand with `Graphics`, no chart library. Figma Set A (sidebar) is the final design |
 | 0.4.1 | 2026-11-16 | Advisory uniqueness now includes category, so health and climate advisories can share a version number |
