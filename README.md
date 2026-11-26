@@ -117,49 +117,19 @@ An anomaly episode opens at |z| ≥ 2.0 and closes when |z| drops below 1.75, so
 4. **Tier and advice.** The z-score becomes a tier, and the matching health and climate advice is shown.
 5. **Ledger.** If |z| reaches 2.0 an episode opens; worse readings raise its peak; it closes below 1.75.
 
-## Module 1: requirements and grading criteria
+## Grading criteria: where to find them
 
-How ClimaPulse meets each point of the Module 1 brief.
-
-**Project requirements**
-
-| Module 1 requires | ClimaPulse |
-| --- | --- |
-| Theme set by the supervisor: Climate Action | Detects climate anomalies: today's weather against each city's 30-year normal, with advice and a history of every anomaly |
-| Use a database or a third-party web service | Both: PostgreSQL (7 tables, constraints in `backend/Database/schema.sql`) and the Open-Meteo forecast, archive and geocoding APIs (`backend/Services/WeatherService.cs`) |
-| Developed in C# as a desktop application (Windows Store, Windows Forms or WPF) | WPF on .NET 10 (`frontend/`), with a C# backend class library (`backend/`) and shared contracts (`shared/`) |
-| Roles: software architect, backend developer, frontend developer | See [Team](#team) |
-
-**Process assessment (40%)**
-
-| Criterion | Weight | Evidence |
+| Grading criterion | Weight | Where it is in ClimaPulse |
 | --- | --- | --- |
-| Teamwork | 10% | One branch per task (`type/short-description`), pull requests into `Development` with a [template](docs/pull_request_template.md) and a reviewer, a shared [task list](docs/team-tasks.md) per role |
-| Application of engineering design principles | 10% | Layered design with one contract between UI and logic, the strategy pattern, dependency inversion, database constraints, automated tests and CI. See [OOP design](#oop-design) and [Why choose these](#why-choose-these) |
-| Alignment of deliverables with expected outcomes | 10% | Every feature points to a requirement id in the [SRD](docs/SRD.md) (FR-xx, NFR-xx). See [What you can do](#what-you-can-do) and [Where it is in the code](#where-it-is-in-the-code) |
-| Quizzes and understanding | 10% | Individual, in class |
-
-**Product assessment (60%)**
-
-| Criterion | Weight | Evidence |
-| --- | --- | --- |
-| 1. Product well documented on GitHub | 20% | This README, the [SRD](docs/SRD.md), the [API contract](docs/api-contract.md), the [architecture guide](docs/references-desktop-architecture.md) and the [class diagrams](#class-diagrams-module-3) |
-| 1a. Uses Git | | Full history on GitHub: feature branches, pull requests, reviews, and CI on every pull request (`.github/workflows/ci.yml`) |
-| 1b. Access information for a product demo | | [Try it (for lecturers)](#try-it-for-lecturers) and the demo build on [GitHub Releases](https://github.com/Rdiit6/Junior-Project/releases) |
-| 1c. Brief usage documentation | | The walkthrough in [Try it](#try-it-for-lecturers) and [Run it locally](#run-it-locally) |
-| 2. Product demo runs properly without errors | 20% | CI builds with warnings as errors and runs every test (unit and database) on each pull request. One failing city never stops the others, every screen has loading, empty and error states, and a crash handler keeps the app open and writes `%LOCALAPPDATA%\ClimaPulse\logs\error.log` |
-| 3. OOP design quality, originality and usefulness | 20% | [OOP design](#oop-design), [Who it is for](#who-it-is-for) and [Why choose these](#why-choose-these): an anomaly monitor with a 30-year local baseline and an anomaly ledger, not another forecast app |
-
-## OOP design
-
-| Principle | Where |
-| --- | --- |
-| **Encapsulation** | Each repository hides its SQL behind methods (`CityRepository.FindByRef`, `AnomalyEventRepository.UpdatePeak`). Shared database plumbing is `protected` in `PostgresRepositoryBase`; helpers are `internal` (`ZScoreCalculator`, `DbMapping`). `AnomalyEvent.Close` is the one place that closes an episode |
-| **Inheritance** | The 7 repositories extend the abstract `PostgresRepositoryBase` and implement `IRepository<T>` |
-| **Polymorphism** | `TemperatureStrategy`, `PrecipitationStrategy` and `WindStrategy` implement `IAnomalyStrategy`. `AnomalyDetectionService.Evaluate` picks the strategy per metric and calls it through the interface |
-| **Abstraction** | The 8 service interfaces in `shared/ClimaPulse.Contracts` (`IDashboardService`, `IMonitoringService` and others). The screens know only these interfaces, never a repository |
-| **Dependency inversion** | Windows and user controls receive interfaces through their constructors. Only `frontend/App.xaml.cs` creates the real classes (the composition root) |
-| **Open for extension** | Wind was added as one new strategy class, without editing the temperature or rain strategies |
+| **Process 1.** Teamwork | 10% | [Team](#team) roles, one branch and pull request per task with a reviewer, the [task list](docs/team-tasks.md) |
+| **Process 2.** Engineering design principles | 10% | [Why choose these](#why-choose-these), the [API contract](docs/api-contract.md), [class diagrams](#class-diagrams-module-3), CI in `.github/workflows/ci.yml` |
+| **Process 3.** Deliverables match expected outcomes | 10% | [What you can do](#what-you-can-do) and [Where it is in the code](#where-it-is-in-the-code), each tied to a requirement in the [SRD](docs/SRD.md) |
+| **Process 4.** Quizzes and understanding | 10% | Individual, in class |
+| **Product 1a.** Documented on GitHub, uses Git | 20% | This README, `docs/`, and the GitHub history of branches and pull requests |
+| **Product 1b.** Access information for a demo | (in 1) | [Try it (for lecturers)](#try-it-for-lecturers) and [GitHub Releases](https://github.com/Rdiit6/Junior-Project/releases) |
+| **Product 1c.** Brief usage documentation | (in 1) | The walkthrough in [Try it](#try-it-for-lecturers), and [Run it locally](#run-it-locally) |
+| **Product 2.** Demo runs without errors | 20% | CI builds and tests every change; errors for one city never stop the others; a crash handler keeps the app open and logs to `%LOCALAPPDATA%\ClimaPulse\logs` |
+| **Product 3.** OOP design, originality, usefulness | 20% | OOP: `IAnomalyStrategy` with one strategy per metric (polymorphism), repositories extending `PostgresRepositoryBase` (inheritance), screens using only `shared/ClimaPulse.Contracts` interfaces (abstraction). Originality and usefulness: [Who it is for](#who-it-is-for) |
 
 ## Where it is in the code
 
