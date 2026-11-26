@@ -68,6 +68,19 @@ public class WeatherService
     }
 
     /// <summary>
+    /// The last <paramref name="days"/> days up to and including today, oldest first, in the
+    /// city's time zone, from one forecast call with past_days (FR-20, S4 "Last 14 days").
+    /// The archive is not used because it lags about 5 days behind.
+    /// </summary>
+    public async Task<List<TodayReading>> FetchRecentAsync(City city, int days, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(city);
+        ArgumentOutOfRangeException.ThrowIfLessThan(days, 1);
+        var json = await GetAsync(BuildTodayUrl(ForecastUri, city, days - 1), city.Id, ct);
+        return Parse(() => ParseDays(json), city.Id);
+    }
+
+    /// <summary>
     /// The full baseline period as one row per day and metric (SRD FR-07), about 32,900 rows.
     /// Nothing is saved here: IBaselineService stores the rows and reports progress.
     /// </summary>
@@ -126,8 +139,14 @@ public class WeatherService
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
                 throw new UpstreamException("Open-Meteo limit reached. Try again in a minute.", cityId);
             if (!response.IsSuccessStatusCode)
-                // shortcut: the 400 "reason" is not logged yet (no logger in the backend), add it with the log file.
-                throw new UpstreamException($"Open-Meteo returned an error ({(int)response.StatusCode}).", cityId);
+            {
+                // The user sees a plain message; Open-Meteo's own reason (for a 400 it names our bad
+                // parameter) rides in the inner exception so the app's error log keeps it.
+                var reason = ErrorReason(await response.Content.ReadAsStringAsync(ct));
+                throw new UpstreamException(
+                    $"Open-Meteo returned an error ({(int)response.StatusCode}).", cityId,
+                    new HttpRequestException($"Open-Meteo HTTP {(int)response.StatusCode}: {reason}", null, response.StatusCode));
+            }
             return await response.Content.ReadAsStringAsync(ct);
         }
         catch (HttpRequestException e)
@@ -140,6 +159,28 @@ public class WeatherService
         }
     }
 
+    /// <summary>
+    /// The "reason" of an Open-Meteo error body such as {"error":true,"reason":"..."},
+    /// or the start of the body when it is not that JSON.
+    /// </summary>
+    public static string ErrorReason(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("reason", out var reason) && reason.ValueKind == JsonValueKind.String)
+                return reason.GetString()!;
+        }
+        catch (JsonException)
+        {
+            // Not JSON (for example an HTML error page from a proxy): fall through to the raw text.
+        }
+
+        var text = body.Trim();
+        return text.Length == 0 ? "(no body)" : text[..Math.Min(text.Length, 200)];
+    }
+
     private static T Parse<T>(Func<T> parse, int? cityId)
     {
         try
@@ -147,7 +188,7 @@ public class WeatherService
             return parse();
         }
         catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException
-                                       or FormatException or IndexOutOfRangeException)
+                                       or FormatException or IndexOutOfRangeException or ArgumentOutOfRangeException)
         {
             throw new UpstreamException("Open-Meteo sent an answer that could not be read.", cityId, e);
         }
@@ -157,9 +198,10 @@ public class WeatherService
     /// Forecast URL for one day. Always sends the city's time zone: without it Open-Meteo
     /// silently uses GMT and "today" is the wrong day.
     /// </summary>
-    public static string BuildTodayUrl(Uri forecastUri, City city) =>
+    public static string BuildTodayUrl(Uri forecastUri, City city, int pastDays = 0) =>
         $"{forecastUri}?{Coordinates(city)}&daily={DailyVariables}" +
-        $"&timezone={Uri.EscapeDataString(city.Timezone)}&forecast_days=1&{Units}";
+        $"&timezone={Uri.EscapeDataString(city.Timezone)}&forecast_days=1" +
+        (pastDays > 0 ? $"&past_days={pastDays.ToString(CultureInfo.InvariantCulture)}" : "") + $"&{Units}";
 
     /// <summary>Archive URL for the whole baseline period, in the city's time zone.</summary>
     public static string BuildArchiveUrl(Uri archiveUri, City city) =>
@@ -167,22 +209,26 @@ public class WeatherService
         $"&daily={DailyVariables}&timezone={Uri.EscapeDataString(city.Timezone)}&{Units}";
 
     /// <summary>Reads daily[0] of a forecast answer. A null value stays null (NoData for that metric).</summary>
-    public static TodayReading ParseToday(string json)
+    public static TodayReading ParseToday(string json) => ParseDays(json)[0];
+
+    /// <summary>Reads every day of a forecast answer, oldest first. A null value stays null.</summary>
+    public static List<TodayReading> ParseDays(string json)
     {
         using var doc = JsonDocument.Parse(json);
         var daily = doc.RootElement.GetProperty("daily");
-        var date = DateOnly.ParseExact(daily.GetProperty("time")[0].GetString()!, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-        double? First(string variable) =>
-            daily.TryGetProperty(variable, out var values) && values.GetArrayLength() > 0
-                ? NumberOrNull(values[0])
+        double? At(string variable, int i) =>
+            daily.TryGetProperty(variable, out var values) && values.GetArrayLength() > i
+                ? NumberOrNull(values[i])
                 : null;
 
-        return new TodayReading(
-            date,
-            First("temperature_2m_mean"),
-            First("precipitation_sum"),
-            First("wind_speed_10m_max"));
+        return daily.GetProperty("time").EnumerateArray()
+            .Select((t, i) => new TodayReading(
+                DateOnly.ParseExact(t.GetString()!, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                At("temperature_2m_mean", i),
+                At("precipitation_sum", i),
+                At("wind_speed_10m_max", i)))
+            .ToList();
     }
 
     /// <summary>
