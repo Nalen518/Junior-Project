@@ -5,7 +5,7 @@
     xmlns:controls="clr-namespace:ClimaPulse.Desktop.Controls"
     Title="Choose your first city"
     Width="620"
-    Height="700"
+    Height="640"
     MinWidth="520"
     MinHeight="600"
     Background="#F5F8FA"
