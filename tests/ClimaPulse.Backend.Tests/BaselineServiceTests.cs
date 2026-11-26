@@ -120,6 +120,42 @@ public class BaselineServiceDatabaseTests
     }
 
     [Fact]
+    public async Task Recomputing_a_baseline_never_changes_a_past_event_FR28()
+    {
+        var history = new HistoricalObservationRepository(_connection);
+        void AddOctober(int year, double temperature) => history.AddRange(BaselineService.ScoredMetrics.Select(m =>
+            new HistoricalObservation
+            {
+                CityId = _city.Id, MetricType = m,
+                ObservedAt = new DateTime(year, 10, 1, 0, 0, 0, DateTimeKind.Utc), Value = temperature
+            }));
+
+        AddOctober(1995, 27.0);
+        AddOctober(1996, 29.0);   // October temperature: mean 28, std dev 1.41
+        var before = (await Service(NoNetwork).RefreshAsync(_city.Id)).Single(b => b.Metric == MetricType.Temperature);
+
+        // An event recorded against that baseline keeps a copy of its mean and standard deviation.
+        var events = new AnomalyEventRepository(_connection);
+        var e = new AnomalyEvent
+        {
+            CityId = _city.Id, BaselineId = before.Id, MetricType = MetricType.Temperature, SeverityTier = SeverityTier.Warning,
+            StartedAt = new DateTime(2026, 10, 5, 5, 0, 0, DateTimeKind.Utc), PeakAt = new DateTime(2026, 10, 5, 5, 0, 0, DateTimeKind.Utc),
+            PeakObservedValue = 33.0, PeakZScore = 3.5, BaselineMeanSnapshot = before.Mean, BaselineStdDevSnapshot = before.StdDev
+        };
+        events.Add(e);
+
+        AddOctober(1997, 35.0);   // new history moves the baseline
+        var after = (await Service(NoNetwork).RefreshAsync(_city.Id)).Single(b => b.Metric == MetricType.Temperature);
+
+        Assert.Equal(before.Id, after.Id);          // same row, updated in place (FR-08)
+        Assert.NotEqual(before.Mean, after.Mean);   // 28 -> 30.33
+        Assert.NotEqual(before.StdDev, after.StdDev);
+        var stored = events.GetById(e.Id)!;
+        Assert.Equal((before.Mean, before.StdDev), (stored.BaselineMeanSnapshot, stored.BaselineStdDevSnapshot));
+        Assert.Equal((33.0, 3.5, SeverityTier.Warning), (stored.PeakObservedValue, stored.PeakZScore, stored.SeverityTier));
+    }
+
+    [Fact]
     public async Task Unknown_city_and_a_running_refresh_throw()
     {
         var state = new CityRefreshState();

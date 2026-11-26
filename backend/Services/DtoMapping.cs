@@ -30,10 +30,10 @@ internal static class DtoMapping
     public static AdvisoryDto ToDto(this Advisory a) => new(
         a.Id, a.MetricType, a.SeverityTier, a.Locale, a.Category, a.Title, a.Body, a.Version, a.EffectiveFrom);
 
-    public static AnomalyEventDto ToDto(this AnomalyEvent e, string cityName) => new(
+    public static AnomalyEventDto ToDto(this AnomalyEvent e, string cityName, string? advisoryTitle) => new(
         e.Id, e.CityId, cityName, e.BaselineId, e.AdvisoryId, e.MetricType, e.SeverityTier,
         e.StartedAt, e.EndedAt, e.PeakAt, e.PeakObservedValue, e.PeakZScore,
-        e.BaselineMeanSnapshot, e.BaselineStdDevSnapshot, e.Status, e.CreatedAt);
+        e.BaselineMeanSnapshot, e.BaselineStdDevSnapshot, e.Status, e.CreatedAt, advisoryTitle);
 
     /// <summary>
     /// UTC now cut to whole seconds, the precision the database keeps, so a DTO
