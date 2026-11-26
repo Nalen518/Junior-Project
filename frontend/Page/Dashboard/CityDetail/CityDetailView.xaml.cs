@@ -244,8 +244,8 @@ public partial class CityDetailView : UserControl
 
             ReadingStatusText.Text = "No current reading has been fetched in this app session.";
 
-            AdvisoriesList.ItemsSource = Array.Empty<AdvisoryDto>();
-            AdvisoriesPanel.Visibility = Visibility.Collapsed;
+            UpdateBaselineNote(null);
+            ShowAdvisories(Array.Empty<AdvisoryDto>());
 
             return;
         }
@@ -272,9 +272,80 @@ public partial class CityDetailView : UserControl
             ? $"Live reading from {observedAt.ToLocalTime():d MMM yyyy, HH:mm}"
             : GetDataStatusText(reading.DataStatus);
 
-        AdvisoriesList.ItemsSource = reading.Advisories;
-        AdvisoriesPanel.Visibility =
-            reading.Advisories.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateBaselineNote(reading);
+        ShowAdvisories(reading.Advisories);
+    }
+
+    private void ShowAdvisories(IReadOnlyList<AdvisoryDto> advisories)
+    {
+        var health = advisories
+            .Where(advisory => advisory.Category == AdvisoryCategory.Health)
+            .ToList();
+
+        var climate = advisories
+            .Where(advisory => advisory.Category == AdvisoryCategory.Climate)
+            .ToList();
+
+        HealthAdvisoriesList.ItemsSource = health;
+        ClimateAdvisoriesList.ItemsSource = climate;
+
+        var noAdviceMessage =
+            advisories.Count == 0
+                ? "No advice is needed while this metric is within the normal range."
+                : string.Empty;
+
+        HealthAdviceEmptyText.Text = health.Count == 0 ? noAdviceMessage : string.Empty;
+
+        ClimateAdviceEmptyText.Text = climate.Count == 0 ? noAdviceMessage : string.Empty;
+
+        AdvisoriesPanel.Visibility = Visibility.Visible;
+    }
+
+    private void UpdateBaselineNote(MetricReadingDto? reading)
+    {
+        var observedAt = reading?.ObservedAt ?? DateTime.UtcNow;
+
+        var month = GetCityLocalTime(observedAt).Month;
+
+        var baseline = _baselines.FirstOrDefault(item =>
+            item.Metric == _selectedMetric && item.Month == month
+        );
+
+        if (baseline is null)
+        {
+            BaselineNoteText.Text =
+                $"Baseline: not built yet for "
+                + $"{CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)}.";
+
+            return;
+        }
+
+        var dailyKind = _selectedMetric switch
+        {
+            MetricType.Precipitation => "daily total",
+            MetricType.WindSpeed => "daily maximum",
+            _ => "daily mean",
+        };
+
+        BaselineNoteText.Text =
+            $"Baseline: "
+            + $"{CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)} "
+            + $"{dailyKind}, {baseline.BaselineStartYear}–{baseline.BaselineEndYear} "
+            + $"({baseline.SampleSize} days) · computed "
+            + $"{baseline.ComputedAt.ToLocalTime():d MMM yyyy}.";
+    }
+
+    private DateTime GetCityLocalTime(DateTime utcTime)
+    {
+        if (TimeZoneInfo.TryFindSystemTimeZoneById(_entry.City.Timezone, out var cityTimeZone))
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.SpecifyKind(utcTime, DateTimeKind.Utc),
+                cityTimeZone
+            );
+        }
+
+        return utcTime.ToLocalTime();
     }
 
     private string GetReadingExplanation(MetricReadingDto reading)

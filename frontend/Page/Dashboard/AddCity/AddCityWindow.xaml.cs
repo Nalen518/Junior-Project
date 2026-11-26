@@ -36,18 +36,12 @@ public partial class AddCityWindow : Window
         Loaded += (_, _) => SearchTextBox.Focus();
     }
 
-    private async void SearchButton_Click(
-        object sender,
-        RoutedEventArgs e
-    )
+    private async void SearchButton_Click(object sender, RoutedEventArgs e)
     {
         await SearchAsync();
     }
 
-    private async void SearchTextBox_KeyDown(
-        object sender,
-        KeyEventArgs e
-    )
+    private async void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
@@ -81,9 +75,7 @@ public partial class AddCityWindow : Window
                 Results.Add(city);
             }
 
-            ResultCountText.Text = Results.Count == 1
-                ? "1 result"
-                : $"{Results.Count} results";
+            ResultCountText.Text = Results.Count == 1 ? "1 result" : $"{Results.Count} results";
 
             if (Results.Count == 0)
             {
@@ -96,9 +88,7 @@ public partial class AddCityWindow : Window
         }
         catch (Exception)
         {
-            ShowError(
-                "City search needs an internet connection. Try again in a moment."
-            );
+            ShowError("City search needs an internet connection. Try again in a moment.");
         }
         finally
         {
@@ -107,10 +97,7 @@ public partial class AddCityWindow : Window
         }
     }
 
-    private async void AddResultButton_Click(
-        object sender,
-        RoutedEventArgs e
-    )
+    private async void AddResultButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: CitySearchResult city })
         {
@@ -118,61 +105,52 @@ public partial class AddCityWindow : Window
         }
 
         AlreadyAddedText.Visibility = Visibility.Collapsed;
-        BaselineProgressPanel.Visibility = Visibility.Visible;
 
-        SetImportingState(true);
+        CityDto storedCity;
 
         try
         {
-            var storedCity = await _cityService.AddAsync(city);
+            storedCity = await _cityService.AddAsync(city);
 
-            await _watchlistService.AddAsync(
-                _profile.Id,
-                new AddWatchlistRequest(storedCity.Id)
-            );
-
-            var progress = new Progress<int>(percentage =>
-            {
-                BaselineProgressBar.Value = percentage;
-
-                BaselineProgressText.Text =
-                    percentage switch
-                    {
-                        < 60 => "Downloading 30 years of historical weather data…",
-                        < 100 => "Calculating monthly climate baselines…",
-                        _ => "Baseline ready."
-                    };
-            });
-
-            await _baselineService.RefreshAsync(
-                storedCity.Id,
-                progress
-            );
-
-            DialogResult = true;
+            await _watchlistService.AddAsync(_profile.Id, new AddWatchlistRequest(storedCity.Id));
         }
         catch (ConflictException)
         {
-            AlreadyAddedText.Text =
-                $"{city.Name} is already on your watchlist.";
+            AlreadyAddedText.Text = $"{city.Name} is already on your watchlist.";
 
             AlreadyAddedText.Visibility = Visibility.Visible;
-            BaselineProgressPanel.Visibility = Visibility.Collapsed;
+
+            return;
         }
         catch (ClimaPulseException ex)
         {
             AlreadyAddedText.Text = ex.Message;
             AlreadyAddedText.Visibility = Visibility.Visible;
-            BaselineProgressPanel.Visibility = Visibility.Collapsed;
+
+            return;
         }
         catch (Exception)
         {
             AlreadyAddedText.Text =
-                "The city was added, but its baseline import failed. " +
-                "You can retry it later from Settings.";
+                "The city could not be added. Check the database connection and try again.";
 
             AlreadyAddedText.Visibility = Visibility.Visible;
-            BaselineProgressPanel.Visibility = Visibility.Collapsed;
+
+            return;
+        }
+
+        SetImportingState(true);
+
+        ImportOverlay.Visibility = Visibility.Visible;
+
+        try
+        {
+            var completed = await BaselineImport.RunAsync(_baselineService, storedCity);
+
+            if (completed)
+            {
+                DialogResult = true;
+            }
         }
         finally
         {
@@ -180,10 +158,7 @@ public partial class AddCityWindow : Window
         }
     }
 
-    private void CancelButton_Click(
-        object sender,
-        RoutedEventArgs e
-    )
+    private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isImportingBaseline)
         {
@@ -209,9 +184,7 @@ public partial class AddCityWindow : Window
         ErrorPanel.Visibility = Visibility.Collapsed;
         NoResultsPanel.Visibility = Visibility.Collapsed;
         AlreadyAddedText.Visibility = Visibility.Collapsed;
-        BaselineProgressPanel.Visibility = Visibility.Collapsed;
-        BaselineProgressBar.Value = 0;
-        BaselineProgressText.Text = string.Empty;
+        ImportOverlay.Visibility = Visibility.Collapsed;
     }
 
     private void ShowError(string message)

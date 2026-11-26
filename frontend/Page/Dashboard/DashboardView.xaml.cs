@@ -242,7 +242,8 @@ public partial class DashboardView : UserControl
                 "No live reading has been fetched yet.",
                 "Use Refresh all to retrieve today’s weather.",
                 "Not refreshed yet",
-                double.NaN
+                double.NaN,
+                string.Empty
             );
         }
 
@@ -259,7 +260,10 @@ public partial class DashboardView : UserControl
                 GetDataStatusMessage(selectedReading.DataStatus),
                 "Refresh the city after its baseline is ready.",
                 FormatCardTime(city.LastRefreshedAt),
-                double.NaN
+                double.NaN,
+                selectedReading.DataStatus == DataStatus.NoBaseline
+                    ? "Build baseline"
+                    : string.Empty
             );
         }
 
@@ -276,7 +280,8 @@ public partial class DashboardView : UserControl
             BuildSecondaryText(selectedReading),
             BuildFooterText(city, selectedReading),
             FormatCardTime(city.LastRefreshedAt),
-            selectedReading.ZScore ?? double.NaN
+            selectedReading.ZScore ?? double.NaN,
+            string.Empty
         );
     }
 
@@ -520,6 +525,50 @@ public partial class DashboardView : UserControl
         }
     }
 
+    private async void CityCard_ActionClicked(object? sender, EventArgs e)
+    {
+        if (sender is not CityCard { Entry: WatchlistEntryDto entry })
+        {
+            return;
+        }
+
+        RefreshButton.IsEnabled = false;
+        AddCityButton.IsEnabled = false;
+        CardsList.IsEnabled = false;
+
+        try
+        {
+            var completed = await BaselineImport.RunAsync(_baselineService, entry.City);
+
+            if (!completed)
+            {
+                return;
+            }
+
+            await _monitoringService.RefreshCityAsync(entry.City.Id);
+
+            await LoadDashboardAsync();
+
+            BaselineImport.Visibility = Visibility.Collapsed;
+        }
+        catch (ClimaPulseException ex)
+        {
+            ShowDashboardError(ex.Message);
+        }
+        catch (Exception)
+        {
+            ShowDashboardError(
+                "The city baseline was prepared, but its current weather could not be refreshed."
+            );
+        }
+        finally
+        {
+            RefreshButton.IsEnabled = true;
+            AddCityButton.IsEnabled = true;
+            CardsList.IsEnabled = true;
+        }
+    }
+
     private void CityCard_Click(object? sender, EventArgs e)
     {
         if (sender is CityCard { Entry: WatchlistEntryDto entry })
@@ -539,6 +588,7 @@ public partial class DashboardView : UserControl
         string SecondaryText,
         string FooterText,
         string UpdatedText,
-        double BellCurveZScore
+        double BellCurveZScore,
+        string ActionText
     );
 }

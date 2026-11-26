@@ -51,6 +51,12 @@ public partial class CityCard : UserControl
         new PropertyMetadata(double.NaN)
     );
 
+    public static readonly DependencyProperty ActionTextProperty = RegisterTextProperty(
+        nameof(ActionText)
+    );
+
+    public event EventHandler? ActionClicked;
+
     public static readonly DependencyProperty EntryProperty = DependencyProperty.Register(
         nameof(Entry),
         typeof(object),
@@ -117,6 +123,11 @@ public partial class CityCard : UserControl
         set => SetValue(BellCurveZScoreProperty, value);
     }
 
+    public string ActionText
+    {
+        get => (string)GetValue(ActionTextProperty);
+        set => SetValue(ActionTextProperty, value);
+    }
     public object? Entry
     {
         get => GetValue(EntryProperty);
@@ -131,6 +142,13 @@ public partial class CityCard : UserControl
     private void CityCardButton_Click(object sender, RoutedEventArgs e)
     {
         CityClicked?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ActionButton_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        ActionClicked?.Invoke(this, EventArgs.Empty);
     }
 
     private static DependencyProperty RegisterTextProperty(string name, string defaultValue = "")

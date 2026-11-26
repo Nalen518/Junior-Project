@@ -67,40 +67,43 @@
             </StackPanel>
         </Grid>
 
-        <Border
-            x:Name="ErrorBanner"
-            Grid.Row="2"
-            Padding="12"
-            Background="#FFF1F1"
-            BorderBrush="#E45A5A"
-            BorderThickness="1"
-            CornerRadius="6"
-            Visibility="Collapsed">
+        <StackPanel Grid.Row="2">
+            <controls:BaselineImportPanel x:Name="BaselineImport" Margin="0,0,0,8" />
 
-            <Grid>
-                <StackPanel>
-                    <TextBlock
-                        FontSize="13"
-                        FontWeight="SemiBold"
-                        Foreground="#B42318"
-                        Text="Dashboard data is unavailable" />
+            <Border
+                x:Name="ErrorBanner"
+                Padding="12"
+                Background="#FFF1F1"
+                BorderBrush="#E45A5A"
+                BorderThickness="1"
+                CornerRadius="6"
+                Visibility="Collapsed">
 
-                    <TextBlock
-                        x:Name="ErrorText"
-                        Margin="0,3,0,0"
-                        FontSize="11"
-                        Foreground="#7A271A"
-                        TextWrapping="Wrap" />
-                </StackPanel>
+                <Grid>
+                    <StackPanel>
+                        <TextBlock
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#B42318"
+                            Text="Dashboard data is unavailable" />
 
-                <Button
-                    Padding="10,5"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Click="RefreshButton_Click"
-                    Content="Try again" />
-            </Grid>
-        </Border>
+                        <TextBlock
+                            x:Name="ErrorText"
+                            Margin="0,3,0,0"
+                            FontSize="11"
+                            Foreground="#7A271A"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Button
+                        Padding="10,5"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Click="RefreshButton_Click"
+                        Content="Try again" />
+                </Grid>
+            </Border>
+        </StackPanel>
 
         <Grid Grid.Row="4">
             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -189,6 +192,8 @@
                         <DataTemplate>
                             <controls:CityCard
                                 Margin="0,0,14,14"
+                                ActionClicked="CityCard_ActionClicked"
+                                ActionText="{Binding ActionText}"
                                 BellCurveZScore="{Binding BellCurveZScore}"
                                 CityClicked="CityCard_Click"
                                 CityName="{Binding CityName}"

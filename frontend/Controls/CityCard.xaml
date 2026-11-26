@@ -14,18 +14,16 @@
         Cursor="Hand">
 
         <Border
-            Width="365"
-            MinHeight="330"
-            Padding="22"
+            Width="255"
+            Height="255"
+            Padding="15"
             Background="White"
             BorderBrush="#D9E2E8"
             BorderThickness="1"
-            CornerRadius="10">
+            CornerRadius="8">
 
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
@@ -33,86 +31,77 @@
                 </Grid.RowDefinitions>
 
                 <Grid>
-                    <StackPanel>
-                        <TextBlock
-                            FontSize="19"
-                            FontWeight="SemiBold"
-                            Foreground="#1F2933"
-                            Text="{Binding CityName, ElementName=Root}" />
+                    <TextBlock
+                        FontSize="15"
+                        FontWeight="SemiBold"
+                        Foreground="#1F2933"
+                        Text="{Binding CityName, ElementName=Root}" />
 
-                        <TextBlock
-                            Margin="0,3,0,0"
-                            FontSize="11"
-                            Foreground="#65737E"
-                            Text="{Binding Location, ElementName=Root}" />
-                    </StackPanel>
-
-                    <controls:TierBadge
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Tier="{Binding Tier, ElementName=Root}" />
+                    <controls:TierBadge HorizontalAlignment="Right" Tier="{Binding Tier, ElementName=Root}" />
                 </Grid>
 
                 <TextBlock
                     Grid.Row="1"
-                    Margin="0,17,0,0"
-                    FontSize="13"
+                    Margin="0,4,0,0"
+                    FontSize="11"
                     Foreground="#65737E"
-                    Text="{Binding MetricLabel, ElementName=Root}" />
+                    Text="{Binding Location, ElementName=Root}" />
 
-                <StackPanel
-                    Grid.Row="2"
-                    Margin="0,10,0,0"
-                    VerticalAlignment="Bottom"
-                    Orientation="Horizontal">
+                <StackPanel Grid.Row="2" Margin="0,12,0,0">
 
                     <TextBlock
-                        FontSize="26"
-                        FontWeight="SemiBold"
-                        Foreground="#202124"
-                        Text="{Binding PrimaryText, ElementName=Root}" />
+                        FontSize="11"
+                        Foreground="#65737E"
+                        Text="{Binding MetricLabel, ElementName=Root}" />
+
+                    <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
+
+                        <TextBlock
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Foreground="#1F2933"
+                            Text="{Binding PrimaryText, ElementName=Root}" />
+
+                        <TextBlock
+                            Margin="8,0,0,3"
+                            VerticalAlignment="Bottom"
+                            FontSize="10"
+                            FontWeight="SemiBold"
+                            Foreground="#1F2933"
+                            Text="{Binding ZScoreText, ElementName=Root}" />
+                    </StackPanel>
+
+                    <charts:DashboardBellCurve
+                        Height="58"
+                        Margin="0,7,0,0"
+                        ZScore="{Binding BellCurveZScore, ElementName=Root}" />
 
                     <TextBlock
-                        Margin="14,0,0,5"
-                        VerticalAlignment="Bottom"
-                        FontSize="15"
-                        FontWeight="SemiBold"
-                        Foreground="#202124"
-                        Text="{Binding ZScoreText, ElementName=Root}" />
+                        Margin="0,6,0,0"
+                        FontSize="10"
+                        Foreground="#65737E"
+                        Text="{Binding SecondaryText, ElementName=Root}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
 
-                <charts:DashboardBellCurve
-                    Grid.Row="3"
-                    Height="92"
-                    Margin="0,13,0,0"
-                    ZScore="{Binding BellCurveZScore, ElementName=Root}" />
-
-                <TextBlock
-                    Grid.Row="4"
-                    Margin="0,10,0,0"
-                    FontSize="12"
-                    Foreground="#65737E"
-                    Text="{Binding SecondaryText, ElementName=Root}"
-                    TextWrapping="Wrap" />
-
                 <Border
-                    Grid.Row="5"
-                    Margin="0,15,0,0"
-                    Padding="0,12,0,0"
+                    Grid.Row="3"
+                    Margin="0,8,0,0"
+                    Padding="0,8,0,0"
                     BorderBrush="#D9E2E8"
                     BorderThickness="0,1,0,0">
 
                     <Grid>
                         <TextBlock
-                            FontSize="11"
-                            Foreground="#65737E"
+                            FontSize="10"
+                            Foreground="#82919C"
                             Text="{Binding FooterText, ElementName=Root}"
                             TextTrimming="CharacterEllipsis" />
 
                         <TextBlock
                             HorizontalAlignment="Right"
-                            FontSize="11"
-                            Foreground="#65737E"
+                            FontSize="10"
+                            Foreground="#82919C"
                             Text="{Binding UpdatedText, ElementName=Root}" />
                     </Grid>
                 </Border>
