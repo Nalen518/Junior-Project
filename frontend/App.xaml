@@ -15,28 +15,38 @@
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1F2933" />
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#65737E" />
 
-        <!-- Global Focus Ring -->
-        <Style TargetType="{x:Type Control}">
-            <Setter Property="FocusVisualStyle">
+        <!-- Global Focus Ring (UI-3). Implicit styles only match their exact type, so each control type gets one. -->
+        <Style x:Key="FocusRing">
+            <Setter Property="Control.Template">
                 <Setter.Value>
-                    <Style>
-                        <Setter Property="Control.Template">
-                            <Setter.Value>
-                                <ControlTemplate>
-                                    <Border Margin="-2"
-                                            BorderBrush="{StaticResource BrandPrimaryBrush}"
-                                            BorderThickness="2"
-                                            CornerRadius="6" />
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
+                    <ControlTemplate>
+                        <Border Margin="-2"
+                                BorderBrush="{StaticResource BrandPrimaryBrush}"
+                                BorderThickness="2"
+                                CornerRadius="6" />
+                    </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
+        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        </Style>
+
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        </Style>
+
+        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        </Style>
+
+        <Style TargetType="RadioButton" BasedOn="{StaticResource {x:Type RadioButton}}">
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        </Style>
+
         <!-- Reusable Primary Button -->
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Height" Value="42" />
             <Setter Property="FontSize" Value="13.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
