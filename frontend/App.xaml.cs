@@ -107,7 +107,7 @@ public partial class App : Application
             state
         );
         _dashboardService = new DashboardService(profilesRepo, watchlistRepo, citiesRepo, state);
-        _eventLedgerService = new EventLedgerService(eventsRepo, citiesRepo);
+        _eventLedgerService = new EventLedgerService(eventsRepo, citiesRepo, advisoriesRepo);
         // IAdvisoryService (advisories) reaches the UI through MetricReadingDto.Advisories, so no screen needs it.
     }
 
