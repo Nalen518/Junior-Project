@@ -95,7 +95,7 @@
                         Click="ActionButton_Click"
                         Content="{Binding ActionText, ElementName=Root}">
                         <Button.Style>
-                            <Style TargetType="Button">
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ActionText, ElementName=Root}" Value="">
                                         <Setter Property="Visibility" Value="Collapsed" />

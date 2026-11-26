@@ -57,7 +57,7 @@
         </Style>
 
         <!--  Dashed "New Profile" Button Style  -->
-        <Style x:Key="DashedActionButtonStyle" TargetType="Button">
+        <Style x:Key="DashedActionButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Height" Value="62" />
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
             <Setter Property="Foreground" Value="{StaticResource BrandPrimaryBrush}" />

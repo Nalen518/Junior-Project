@@ -12,7 +12,7 @@
     WindowState="Maximized">
 
     <Window.Resources>
-        <Style x:Key="NavigationButtonStyle" TargetType="Button">
+        <Style x:Key="NavigationButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Height" Value="46" />
             <Setter Property="Margin" Value="12,4" />
             <Setter Property="Padding" Value="14,0" />
