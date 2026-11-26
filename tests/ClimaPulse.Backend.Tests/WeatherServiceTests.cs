@@ -119,6 +119,28 @@ public class WeatherServiceTests
     }
 
     [Fact]
+    public async Task An_HTTP_400_keeps_Open_Meteo_reason_for_the_log_but_not_in_the_user_message()
+    {
+        const string body = """{"error":true,"reason":"Cannot initialize WeatherVariable from invalid String value tempeture_2m."}""";
+        var service = new WeatherService(new HttpClient(new StubHandler(HttpStatusCode.BadRequest, body)), Options);
+
+        var ex = await Assert.ThrowsAsync<UpstreamException>(() => service.FetchTodayAsync(Yogyakarta));
+
+        Assert.Equal("Open-Meteo returned an error (400).", ex.Message);
+        Assert.Equal("Open-Meteo HTTP 400: Cannot initialize WeatherVariable from invalid String value tempeture_2m.", ex.InnerException?.Message);
+        Assert.Contains("tempeture_2m", ex.ToString());   // what the error log writes
+    }
+
+    [Theory]
+    [InlineData("""{"error":true,"reason":"bad latitude"}""", "bad latitude")]
+    [InlineData("<html>502 Bad Gateway</html>", "<html>502 Bad Gateway</html>")]
+    [InlineData("  ", "(no body)")]
+    public void ErrorReason_reads_the_JSON_reason_or_falls_back_to_the_text(string body, string expected)
+    {
+        Assert.Equal(expected, WeatherService.ErrorReason(body));
+    }
+
+    [Fact]
     public async Task No_network_becomes_UpstreamException()
     {
         var service = new WeatherService(new HttpClient(new StubHandler(new HttpRequestException("offline"))), Options);
