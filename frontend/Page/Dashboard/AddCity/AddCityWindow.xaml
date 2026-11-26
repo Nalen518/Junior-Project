@@ -227,16 +227,23 @@
                     </StackPanel>
                 </Border>
 
-                <StackPanel x:Name="ImportOverlay"
-                            Background="White"
-                            Visibility="Collapsed">
-                    <controls:BaselineImportPanel x:Name="BaselineImport" />
+                <Border x:Name="ImportOverlay"
+                        Padding="18"
+                        Background="White"
+                        BorderBrush="#D9E2E8"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Visibility="Collapsed">
+                    <StackPanel>
+                        <controls:BaselineImportPanel x:Name="BaselineImport" />
 
-                    <Button Content="Continue"
-                            Margin="0,12,0,0"
-                            HorizontalAlignment="Left"
-                            Click="ContinueButton_Click" />
-                </StackPanel>
+                        <!--  Keep: the import goes on after the window closes ("You can keep using the app").  -->
+                        <Button Content="Continue"
+                                Margin="0,12,0,0"
+                                HorizontalAlignment="Left"
+                                Click="ContinueButton_Click" />
+                    </StackPanel>
+                </Border>
             </Grid>
 
             <TextBlock x:Name="AlreadyAddedText"

@@ -302,6 +302,17 @@ public partial class CityDetailView : UserControl
             return;
         }
 
+        var noteLength = NotesTextBox.Text.Trim().Length;
+
+        if (noteLength > 500)
+        {
+            SettingsMessageText.Foreground = System.Windows.Media.Brushes.IndianRed;
+
+            SettingsMessageText.Text = $"The note can be at most 500 characters. This one has {noteLength}.";
+
+            return;
+        }
+
         try
         {
             await _watchlistService.UpdateAsync(
