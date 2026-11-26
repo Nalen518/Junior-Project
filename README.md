@@ -7,18 +7,18 @@ ClimaPulse is a Windows desktop app that compares today's weather in your cities
 measures how far from normal it is (a z-score), and turns that into a plain tier: **Normal, Watch, Warning or Extreme**,
 with health and climate advice for that tier. Every anomaly episode is kept in a ledger you can filter and export.
 
-> Junior Project 2026, DTETI, Universitas Gadjah Mada. Group **Mendoan**.
-> C# desktop app: WPF on .NET 10, PostgreSQL. Weather data from [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
+> Junior Project 2026, DTETI, Universitas Gadjah Mada. Group **Mendoan**. Theme: **Climate Action**.
+> C# desktop app: WPF on .NET 10, a PostgreSQL database, and the Open-Meteo web service (CC BY 4.0).
 > ClimaPulse shows statistical anomalies. It is not an official BMKG warning.
 
 ## Team
 
-| Name | Student ID | Role |
-| --- | --- | --- |
-| Nalen Raditya Sadewa | 536801 | Group leader, project manager, software engineer (backend) |
-| Arya Raditya Ardana | 536660 | UI/UX designer |
-| Christania Putri Rachmadewi | 532874 | Frontend developer (WPF) |
-| Muhammad Ibrahim Asy Syauqi Wahyuaji | 5327610 | Backend developer |
+| Name | Student ID | Module 1 role | What they did |
+| --- | --- | --- | --- |
+| Nalen Raditya Sadewa | 536801 | Software architect (group leader) | Requirements (SRD), the contract between UI and logic, database, baselines and monitoring, CI, project management |
+| Muhammad Ibrahim Asy Syauqi Wahyuaji | 5327610 | Backend developer | Services, Open-Meteo client, ledger and export, tests |
+| Christania Putri Rachmadewi | 532874 | Frontend developer | WPF screens, charts, card states |
+| Arya Raditya Ardana | 536660 | Frontend developer (UI/UX) | Figma design (screens, components, states), design hand-off |
 
 ## Screenshots
 
@@ -117,17 +117,49 @@ An anomaly episode opens at |z| ≥ 2.0 and closes when |z| drops below 1.75, so
 4. **Tier and advice.** The z-score becomes a tier, and the matching health and climate advice is shown.
 5. **Ledger.** If |z| reaches 2.0 an episode opens; worse readings raise its peak; it closes below 1.75.
 
-## Module 1: requirements and where to find them
+## Module 1: requirements and grading criteria
 
-| Module 1 asks for | Weight | Where it is |
+How ClimaPulse meets each point of the Module 1 brief.
+
+**Project requirements**
+
+| Module 1 requires | ClimaPulse |
+| --- | --- |
+| Theme set by the supervisor: Climate Action | Detects climate anomalies: today's weather against each city's 30-year normal, with advice and a history of every anomaly |
+| Use a database or a third-party web service | Both: PostgreSQL (7 tables, constraints in `backend/Database/schema.sql`) and the Open-Meteo forecast, archive and geocoding APIs (`backend/Services/WeatherService.cs`) |
+| Developed in C# as a desktop application (Windows Store, Windows Forms or WPF) | WPF on .NET 10 (`frontend/`), with a C# backend class library (`backend/`) and shared contracts (`shared/`) |
+| Roles: software architect, backend developer, frontend developer | See [Team](#team) |
+
+**Process assessment (40%)**
+
+| Criterion | Weight | Evidence |
 | --- | --- | --- |
-| A C# desktop application | required | WPF on .NET 10 in `frontend/`, backend class library in `backend/` |
-| Documentation on GitHub, with Git | 20% (product) | This README, `docs/`, pull requests into `Development` with a template and CI |
-| Demo access information and brief usage documentation | (in the 20%) | [Try it (for lecturers)](#try-it-for-lecturers), GitHub Releases, the GitHub Page from `docs` on `main` |
-| The demo runs without errors | 20% (product) | CI builds and tests every pull request. A crash handler keeps the app open and logs to `%LOCALAPPDATA%\ClimaPulse\logs` |
-| OOP design quality, originality and usefulness | 20% (product) | [Why choose these](#why-choose-these), [class diagrams](#class-diagrams-module-3), `backend/Strategies/` |
-| Teamwork, design principles, aligned deliverables, quizzes | 40% (process) | [Team](#team), `docs/team-tasks.md`, `docs/SRD.md`, `docs/api-contract.md`, pull request history |
-| README with the group members | required | [Team](#team) |
+| Teamwork | 10% | One branch per task (`type/short-description`), pull requests into `Development` with a [template](docs/pull_request_template.md) and a reviewer, a shared [task list](docs/team-tasks.md) per role |
+| Application of engineering design principles | 10% | Layered design with one contract between UI and logic, the strategy pattern, dependency inversion, database constraints, automated tests and CI. See [OOP design](#oop-design) and [Why choose these](#why-choose-these) |
+| Alignment of deliverables with expected outcomes | 10% | Every feature points to a requirement id in the [SRD](docs/SRD.md) (FR-xx, NFR-xx). See [What you can do](#what-you-can-do) and [Where it is in the code](#where-it-is-in-the-code) |
+| Quizzes and understanding | 10% | Individual, in class |
+
+**Product assessment (60%)**
+
+| Criterion | Weight | Evidence |
+| --- | --- | --- |
+| 1. Product well documented on GitHub | 20% | This README, the [SRD](docs/SRD.md), the [API contract](docs/api-contract.md), the [architecture guide](docs/references-desktop-architecture.md) and the [class diagrams](#class-diagrams-module-3) |
+| 1a. Uses Git | | Full history on GitHub: feature branches, pull requests, reviews, and CI on every pull request (`.github/workflows/ci.yml`) |
+| 1b. Access information for a product demo | | [Try it (for lecturers)](#try-it-for-lecturers) and the demo build on [GitHub Releases](https://github.com/Rdiit6/Junior-Project/releases) |
+| 1c. Brief usage documentation | | The walkthrough in [Try it](#try-it-for-lecturers) and [Run it locally](#run-it-locally) |
+| 2. Product demo runs properly without errors | 20% | CI builds with warnings as errors and runs every test (unit and database) on each pull request. One failing city never stops the others, every screen has loading, empty and error states, and a crash handler keeps the app open and writes `%LOCALAPPDATA%\ClimaPulse\logs\error.log` |
+| 3. OOP design quality, originality and usefulness | 20% | [OOP design](#oop-design), [Who it is for](#who-it-is-for) and [Why choose these](#why-choose-these): an anomaly monitor with a 30-year local baseline and an anomaly ledger, not another forecast app |
+
+## OOP design
+
+| Principle | Where |
+| --- | --- |
+| **Encapsulation** | Each repository hides its SQL behind methods (`CityRepository.FindByRef`, `AnomalyEventRepository.UpdatePeak`). Shared database plumbing is `protected` in `PostgresRepositoryBase`; helpers are `internal` (`ZScoreCalculator`, `DbMapping`). `AnomalyEvent.Close` is the one place that closes an episode |
+| **Inheritance** | The 7 repositories extend the abstract `PostgresRepositoryBase` and implement `IRepository<T>` |
+| **Polymorphism** | `TemperatureStrategy`, `PrecipitationStrategy` and `WindStrategy` implement `IAnomalyStrategy`. `AnomalyDetectionService.Evaluate` picks the strategy per metric and calls it through the interface |
+| **Abstraction** | The 8 service interfaces in `shared/ClimaPulse.Contracts` (`IDashboardService`, `IMonitoringService` and others). The screens know only these interfaces, never a repository |
+| **Dependency inversion** | Windows and user controls receive interfaces through their constructors. Only `frontend/App.xaml.cs` creates the real classes (the composition root) |
+| **Open for extension** | Wind was added as one new strategy class, without editing the temperature or rain strategies |
 
 ## Where it is in the code
 
