@@ -275,7 +275,7 @@ Retention: observations and baselines are kept as long as the city exists. Ledge
 | Ledger (FR-22 to FR-28) | AnomalyEvent | `IEventLedgerService`, `AnomalyEventRepository` |
 | Users (FR-29) | UserProfile | `IProfileService`, `UserProfileRepository` |
 
-Known gaps (2026-11-25): the backend services, contract and tests are merged. The WPF screens are built but not yet merged, and the dashboard and city detail are not yet wired to `IDashboardService`, `IMonitoringService`, `IBaselineService` and `IAdvisoryService`. No service yet returns the last 14 days of readings for the S4 chart.
+Known gaps (2026-11-25): the backend services, contract and tests are merged. The WPF screens are built but not yet merged, and the dashboard and city detail are not yet wired to `IDashboardService`, `IMonitoringService`, `IBaselineService` and `IAdvisoryService`. `IMonitoringService.GetRecentAsync` returns the last 14 days for the S4 chart; the chart is not yet wired to it.
 
 ---
 

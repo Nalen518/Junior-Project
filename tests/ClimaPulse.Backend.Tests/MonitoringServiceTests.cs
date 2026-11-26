@@ -53,7 +53,12 @@ public class MonitoringServiceDatabaseTests
         static string Json(double? v) => v?.ToString(CultureInfo.InvariantCulture) ?? "null";
         var body = """{"daily":{"time":["2026-10-05"],"temperature_2m_mean":[""" + Json(temperature) +
                    """],"precipitation_sum":[""" + Json(rain) + """],"wind_speed_10m_max":[""" + Json(wind) + "]}}";
+        return Service(body).RefreshCityAsync(cityId ?? _city.Id);
+    }
 
+    /// <summary>The service with Open-Meteo stubbed to answer every call with this body.</summary>
+    private MonitoringService Service(string body)
+    {
         var baselines = new BaselineRepository(_connection);
         var service = new MonitoringService(
             new CityRepository(_connection),
@@ -70,7 +75,7 @@ public class MonitoringServiceDatabaseTests
                 new WeatherService(new HttpClient(), new OpenMeteoOptions()), baselines, new AnomalyEventRepository(_connection)),
             new AdvisoryService(new AdvisoryRepository(_connection)),
             _state);
-        return service.RefreshCityAsync(cityId ?? _city.Id);
+        return service;
     }
 
     private List<AnomalyEvent> Events() => new AnomalyEventRepository(_connection).GetAll();
@@ -162,6 +167,46 @@ public class MonitoringServiceDatabaseTests
 
         var e = Assert.Single(Events());
         Assert.Equal((MetricType.WindSpeed, (int?)null, wind.ActiveEventId), (e.MetricType, e.AdvisoryId, (int?)e.Id));
+    }
+
+    [Fact]
+    public async Task GetRecentAsync_scores_each_day_against_its_month_and_changes_nothing()
+    {
+        // 30 September has no baseline; 1 and 2 October use the October temperature baseline (28, 1.5).
+        const string body = """
+            {"daily":{"time":["2026-09-30","2026-10-01","2026-10-02"],
+                      "temperature_2m_mean":[30.0,33.0,null],"precipitation_sum":[1.0,2.0,3.0],"wind_speed_10m_max":[5.0,6.0,7.0]}}
+            """;
+
+        var recent = await Service(body).GetRecentAsync(_city.Id, days: 3);
+
+        Assert.Equal(9, recent.Count);   // 3 days x 3 metrics, oldest first
+        var temps = recent.Where(r => r.Metric == MetricType.Temperature).ToList();
+        Assert.Equal(
+            [new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 10, 2, 0, 0, 0, DateTimeKind.Utc)],
+            temps.Select(t => t.ObservedAt!.Value));
+        Assert.Equal([DataStatus.NoBaseline, DataStatus.Ok, DataStatus.NoData], temps.Select(t => t.DataStatus));
+        Assert.Equal((3.33, SeverityTier.Warning), (Math.Round(temps[1].ZScore!.Value, 2), temps[1].Tier!.Value));
+        Assert.All(recent, r => Assert.Null(r.ActiveEventId));
+        Assert.All(recent, r => Assert.Empty(r.Advisories));
+
+        Assert.Empty(Events());                     // read-only: a Warning day in the past opens no event
+        Assert.Null(_state.GetLatest(_city.Id));    // and does not replace the dashboard reading
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(32)]
+    public async Task GetRecentAsync_rejects_days_outside_1_to_31(int days)
+    {
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => Service("{}").GetRecentAsync(_city.Id, days));
+        Assert.Equal(["days"], ex.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task GetRecentAsync_throws_NotFound_for_an_unknown_city()
+    {
+        await Assert.ThrowsAsync<NotFoundException>(() => Service("{}").GetRecentAsync(999));
     }
 
     [Fact]

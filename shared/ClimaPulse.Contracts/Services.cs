@@ -41,6 +41,8 @@ public interface IMonitoringService
 {
     /// <summary>Fetch live data, compute z-scores, open, update or close events. FR-06, FR-10 to FR-12, FR-22 to FR-25.</summary>
     Task<RefreshResultDto> RefreshCityAsync(int cityId, CancellationToken ct = default);     // NotFound, Upstream
+    /// <summary>Daily readings of the last days up to today, oldest first, scored against their month's baseline. Read-only: never opens events. FR-20.</summary>
+    Task<IReadOnlyList<MetricReadingDto>> GetRecentAsync(int cityId, int days = 14, CancellationToken ct = default); // NotFound, Validation, Upstream
 }
 
 public interface IBaselineService
