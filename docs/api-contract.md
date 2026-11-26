@@ -1,6 +1,6 @@
 # ClimaPulse Internal API Contract (v2)
 
-Status: draft for team approval. Last updated 2026-11-26 (GetRecentAsync for the 14-day chart).
+Status: draft for team approval. Last updated 2026-11-26 (AdvisoryTitle on AnomalyEventDto).
 
 This document is the agreement between the **frontend** (WPF windows and user controls in the desktop app) and the **backend** (services, repositories, Open-Meteo access). Both sides build against the same C# interfaces and DTOs in `shared/ClimaPulse.Contracts`. That project **is** the contract. This file explains it and the rules around it. If the two ever disagree, the code in `shared/ClimaPulse.Contracts` wins and this file gets fixed.
 
@@ -301,7 +301,8 @@ public sealed record AnomalyEventDto(
     double BaselineMeanSnapshot,
     double BaselineStdDevSnapshot,
     EventStatus Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? AdvisoryTitle = null);          // title of the advisory version stored on the event; null when AdvisoryId is null
 
 public sealed record PagedResult<T>(
     IReadOnlyList<T> Items,
@@ -458,7 +459,7 @@ Rules:
 
 | Item | Format |
 |---|---|
-| Column or property names | camelCase, same names as `AnomalyEventDto` (`peakZScore`) |
+| Column or property names | camelCase, same names and order as `AnomalyEventDto` (`peakZScore`). The last column is `advisoryTitle`: empty in CSV and `null` in JSON when the event has no advisory |
 | Enum values | lowercase database text: `temperature_2m`, `precipitation`, `wind_speed_10m`, `watch`, `warning`, `extreme`, `active`, `closed` |
 | Time | UTC ISO 8601 with `Z`, for example `2026-09-18T05:00:00Z` |
 | Numbers | dot as decimal separator (`CultureInfo.InvariantCulture`), even on an Indonesian Windows |
@@ -503,6 +504,7 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 | 2026-11-24 | v2.2 | C2 decided: search throws `UpstreamException`, no stored-list fallback. Section 9: last refresh kept in memory, global thresholds (SRD OPEN-1, OPEN-10). No interface or DTO change |
 | 2026-11-25 | v2.3 | UI is WPF: composition root is `App.xaml.cs`, crash handler is `DispatcherUnhandledException`, project uses `UseWPF`. No interface or DTO change |
 | 2026-11-26 | v2.4 | New `IMonitoringService.GetRecentAsync` for the S4 "Last 14 days" chart (FR-20): one `MetricReadingDto` per day and metric, oldest first, `days` 1 to 31, `ObservedAt` is the local date at 00:00Z, no events and no advisories. Added to the interface, no DTO change. Section 14: forecast with `past_days` |
+| 2026-11-26 | v2.5 | `AnomalyEventDto` gets `string? AdvisoryTitle = null` as its last parameter, for the ledger drawer's "Advisory shown". It is the title of the exact advisory version stored on the event. Additive: existing constructor calls still compile. Exports (9.7) add an `advisoryTitle` column at the end |
 
 ---
 

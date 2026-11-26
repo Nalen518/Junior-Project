@@ -16,13 +16,20 @@ public class EventLedgerService : IEventLedgerService
 {
     private readonly AnomalyEventRepository _events;
     private readonly CityRepository _cities;
+    private readonly AdvisoryRepository? _advisories;
 
-    public EventLedgerService(AnomalyEventRepository events, CityRepository cities)
+    /// <summary>
+    /// Pass <paramref name="advisories"/> to fill AnomalyEventDto.AdvisoryTitle.
+    /// shortcut: optional only so composition roots written before AdvisoryTitle still compile;
+    /// without it every title is null. Make it required once App.xaml.cs passes it.
+    /// </summary>
+    public EventLedgerService(AnomalyEventRepository events, CityRepository cities, AdvisoryRepository? advisories = null)
     {
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(cities);
         _events = events;
         _cities = cities;
+        _advisories = advisories;
     }
 
     /// <summary>Newest StartedAt first. Page starts at 1, page size 1 to 100.</summary>
@@ -71,9 +78,15 @@ public class EventLedgerService : IEventLedgerService
 
     private List<AnomalyEventDto> ToDtos(List<AnomalyEvent> rows)
     {
-        // Few cities, so one read of the table beats a lookup per event.
+        // Few cities and advisories, so one read of each table beats a lookup per event.
         var names = rows.Count == 0 ? [] : _cities.GetAll().ToDictionary(c => c.Id, c => c.Name);
-        return rows.Select(e => e.ToDto(names.GetValueOrDefault(e.CityId, string.Empty))).ToList();
+        var titles = rows.Count == 0 || _advisories is null
+            ? []
+            : _advisories.GetAll().ToDictionary(a => a.Id, a => a.Title);
+        return rows.Select(e => e.ToDto(
+                names.GetValueOrDefault(e.CityId, string.Empty),
+                e.AdvisoryId is { } id ? titles.GetValueOrDefault(id) : null))
+            .ToList();
     }
 
     /// <summary>One export row: the AnomalyEventDto fields in order, already in their file form.</summary>
@@ -95,6 +108,7 @@ public class EventLedgerService : IEventLedgerService
         ("baselineStdDevSnapshot", e.BaselineStdDevSnapshot),
         ("status", e.Status.ToDb()),
         ("createdAt", e.CreatedAt.ToDb()),
+        ("advisoryTitle", e.AdvisoryTitle),
     ];
 
     private static readonly string[] Header = Fields(
