@@ -225,6 +225,56 @@ public partial class CityDetailView : UserControl
         ShowAdvice(reading?.Advisories ?? []);
 
         await LoadBaselineNoteAsync(metric, month, monthName);
+        await LoadTrendAsync(metric);
+    }
+
+    /// <summary>The 14-day chart (S4 "Last 14 days"), with a one-sentence summary (OPEN-9).</summary>
+    private async Task LoadTrendAsync(MetricType metric)
+    {
+        TrendChart.Metric = MetricDisplay.Name(metric);
+        TrendChart.Values = null;
+        TrendSummaryText.Text = "Loading the last 14 days…";
+        TrendStateMessage.Visibility = Visibility.Collapsed;
+
+        try
+        {
+            var recent = await _monitoringService.GetRecentAsync(_city.Id, 14);
+
+            if (_metric != metric)
+            {
+                return; // the user switched tab while this was loading
+            }
+
+            var days = recent
+                .Where(item => item.Metric == metric && item.ObservedValue is not null)
+                .ToList();
+
+            if (days.Count < 2)
+            {
+                TrendSummaryText.Text = string.Empty;
+                TrendStateMessage.Visibility = Visibility.Visible;
+                return;
+            }
+
+            var unit = _profile.PreferredTemperatureUnit;
+            TrendChart.Values = days.Select(item => item.ObservedValue!.Value).ToList();
+            TrendSummaryText.Text =
+                $"From {MetricDisplay.Value(metric, days[0].ObservedValue!.Value, unit)} "
+                + $"to {MetricDisplay.Value(metric, days[^1].ObservedValue!.Value, unit)} today "
+                + $"({days.Count} days with data).";
+        }
+        catch (ClimaPulseException ex)
+        {
+            if (_metric != metric)
+            {
+                return;
+            }
+
+            TrendSummaryText.Text = string.Empty;
+            TrendStateMessage.Title = "Couldn't load the last 14 days";
+            TrendStateMessage.Message = ex.Message;
+            TrendStateMessage.Visibility = Visibility.Visible;
+        }
     }
 
     private void ShowAdvice(IReadOnlyList<AdvisoryDto> advisories)
