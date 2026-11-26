@@ -4,8 +4,10 @@ using System.Windows;
 using ClimaPulse.Contracts;
 using ClimaPulse.Desktop.Page.Auth;
 using ClimaPulse.Desktop.State;
+using ClimaPulse.Enums;
 using ClimaPulse.Repositories;
 using ClimaPulse.Services;
+using ClimaPulse.Strategies;
 
 namespace ClimaPulse.Desktop;
 
@@ -15,6 +17,12 @@ public partial class App : Application
     private ICityService _cityService = null!;
     private IWatchlistService _watchlistService = null!;
     private IEventLedgerService _eventLedgerService = null!;
+
+    // New backend services used by the real dashboard and city-detail screens.
+    private IDashboardService _dashboardService = null!;
+    private IMonitoringService _monitoringService = null!;
+    private IBaselineService _baselineService = null!;
+    private IAdvisoryService _advisoryService = null!;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -28,26 +36,64 @@ public partial class App : Application
 
             DatabaseInitializer.EnsureCreated(connectionString, schemaPath);
 
+            // Repositories are created only in the composition root.
             var profiles = new UserProfileRepository(connectionString);
             var cities = new CityRepository(connectionString);
             var watchlist = new WatchlistRepository(connectionString);
+            var baselines = new BaselineRepository(connectionString);
+            var history = new HistoricalObservationRepository(connectionString);
+            var events = new AnomalyEventRepository(connectionString);
+            var advisories = new AdvisoryRepository(connectionString);
 
+            // All services share one WeatherService and one in-memory refresh state.
+            var weather = new WeatherService(
+                new HttpClient { Timeout = TimeSpan.FromSeconds(20) },
+                new OpenMeteoOptions()
+            );
+
+            var refreshState = new CityRefreshState();
+
+            var strategies = new Dictionary<MetricType, IAnomalyStrategy>
+            {
+                [MetricType.Temperature] = new TemperatureStrategy(),
+                [MetricType.Precipitation] = new PrecipitationStrategy(),
+                [MetricType.WindSpeed] = new WindStrategy(),
+            };
+
+            var anomalyDetection = new AnomalyDetectionService(
+                strategies,
+                weather,
+                baselines,
+                events
+            );
+
+            // Contract services received by WPF windows and UserControls.
             _profileService = new ProfileService(profiles);
-
-            _cityService = new CityService(
-                cities,
-                new WeatherService(
-                    new HttpClient { Timeout = TimeSpan.FromSeconds(20) },
-                    new OpenMeteoOptions()
-                )
-            );
-
+            _cityService = new CityService(cities, weather);
             _watchlistService = new WatchlistService(watchlist, profiles, cities);
+            _eventLedgerService = new EventLedgerService(events, cities);
 
-            _eventLedgerService = new EventLedgerService(
-                new AnomalyEventRepository(connectionString),
-                cities
+            _advisoryService = new AdvisoryService(advisories);
+
+            _baselineService = new BaselineService(
+                cities,
+                history,
+                baselines,
+                weather,
+                refreshState
             );
+
+            _monitoringService = new MonitoringService(
+                cities,
+                baselines,
+                events,
+                weather,
+                anomalyDetection,
+                (AdvisoryService)_advisoryService,
+                refreshState
+            );
+
+            _dashboardService = new DashboardService(profiles, watchlist, cities, refreshState);
 
             if (!await OpenProfileSessionAsync())
             {
@@ -75,12 +121,12 @@ public partial class App : Application
             _profileService,
             _cityService,
             _watchlistService,
+            _baselineService,
             lastProfileId
         )
         {
             Owner = owner,
         };
-
         var profile = profilePicker.ShowDialog() == true ? profilePicker.SelectedProfile : null;
 
         if (profile is null)
@@ -94,7 +140,12 @@ public partial class App : Application
 
         if (watchedCities.Count == 0)
         {
-            var firstCityWindow = new FirstCityWindow(profile, _cityService, _watchlistService)
+            var firstCityWindow = new FirstCityWindow(
+                profile,
+                _cityService,
+                _watchlistService,
+                _baselineService
+            )
             {
                 Owner = owner,
             };
@@ -111,6 +162,10 @@ public partial class App : Application
             _cityService,
             _watchlistService,
             _eventLedgerService,
+            _dashboardService,
+            _monitoringService,
+            _baselineService,
+            _advisoryService,
             SwitchProfileAsync
         );
 

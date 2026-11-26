@@ -32,6 +32,25 @@ public partial class CityCard : UserControl
         nameof(FooterText)
     );
 
+    public static readonly DependencyProperty MetricLabelProperty = RegisterTextProperty(
+        nameof(MetricLabel)
+    );
+
+    public static readonly DependencyProperty ZScoreTextProperty = RegisterTextProperty(
+        nameof(ZScoreText)
+    );
+
+    public static readonly DependencyProperty UpdatedTextProperty = RegisterTextProperty(
+        nameof(UpdatedText)
+    );
+
+    public static readonly DependencyProperty BellCurveZScoreProperty = DependencyProperty.Register(
+        nameof(BellCurveZScore),
+        typeof(double),
+        typeof(CityCard),
+        new PropertyMetadata(double.NaN)
+    );
+
     public static readonly DependencyProperty EntryProperty = DependencyProperty.Register(
         nameof(Entry),
         typeof(object),
@@ -72,6 +91,30 @@ public partial class CityCard : UserControl
     {
         get => (string)GetValue(FooterTextProperty);
         set => SetValue(FooterTextProperty, value);
+    }
+
+    public string MetricLabel
+    {
+        get => (string)GetValue(MetricLabelProperty);
+        set => SetValue(MetricLabelProperty, value);
+    }
+
+    public string ZScoreText
+    {
+        get => (string)GetValue(ZScoreTextProperty);
+        set => SetValue(ZScoreTextProperty, value);
+    }
+
+    public string UpdatedText
+    {
+        get => (string)GetValue(UpdatedTextProperty);
+        set => SetValue(UpdatedTextProperty, value);
+    }
+
+    public double BellCurveZScore
+    {
+        get => (double)GetValue(BellCurveZScoreProperty);
+        set => SetValue(BellCurveZScoreProperty, value);
     }
 
     public object? Entry

@@ -9,10 +9,17 @@ namespace ClimaPulse.Desktop;
 public partial class MainWindow : Window
 {
     private ProfileDto _profile;
+
     private readonly IProfileService _profileService;
-    private readonly IWatchlistService _watchlistService;
     private readonly ICityService _cityService;
+    private readonly IWatchlistService _watchlistService;
     private readonly IEventLedgerService _eventLedgerService;
+
+    private readonly IDashboardService _dashboardService;
+    private readonly IMonitoringService _monitoringService;
+    private readonly IBaselineService _baselineService;
+    private readonly IAdvisoryService _advisoryService;
+
     private readonly Func<Task> _switchProfile;
 
     public MainWindow(
@@ -21,6 +28,10 @@ public partial class MainWindow : Window
         ICityService cityService,
         IWatchlistService watchlistService,
         IEventLedgerService eventLedgerService,
+        IDashboardService dashboardService,
+        IMonitoringService monitoringService,
+        IBaselineService baselineService,
+        IAdvisoryService advisoryService,
         Func<Task> switchProfile
     )
     {
@@ -29,6 +40,12 @@ public partial class MainWindow : Window
         _cityService = cityService;
         _watchlistService = watchlistService;
         _eventLedgerService = eventLedgerService;
+
+        _dashboardService = dashboardService;
+        _monitoringService = monitoringService;
+        _baselineService = baselineService;
+        _advisoryService = advisoryService;
+
         _switchProfile = switchProfile;
 
         InitializeComponent();
@@ -56,19 +73,30 @@ public partial class MainWindow : Window
     private void ShowDashboard()
     {
         PageTitleText.Text = "Dashboard";
+
         PageContent.Content = new DashboardView(
             _profile,
             _cityService,
             _watchlistService,
+            _dashboardService,
+            _monitoringService,
+            _baselineService,
             ShowCityDetail
         );
+
         SetSelectedButton(DashboardButton);
     }
 
     private void ShowLedger()
     {
+        ShowLedgerForCity(null);
+    }
+
+    private void ShowLedgerForCity(int? cityId)
+    {
         PageTitleText.Text = "Anomaly Ledger";
-        PageContent.Content = new LedgerView(_eventLedgerService, _cityService);
+
+        PageContent.Content = new LedgerView(_eventLedgerService, _cityService, cityId);
 
         SetSelectedButton(LedgerButton);
     }
@@ -81,6 +109,7 @@ public partial class MainWindow : Window
             _profile,
             _profileService,
             _watchlistService,
+            _baselineService,
             UpdateProfile,
             _switchProfile
         );
@@ -121,7 +150,11 @@ public partial class MainWindow : Window
             entry,
             _watchlistService,
             _eventLedgerService,
-            ShowDashboard
+            _dashboardService,
+            _monitoringService,
+            _baselineService,
+            ShowDashboard,
+            cityId => ShowLedgerForCity(cityId)
         );
     }
 

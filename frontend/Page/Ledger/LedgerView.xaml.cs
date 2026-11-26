@@ -15,6 +15,7 @@ public partial class LedgerView : UserControl
 
     private readonly IEventLedgerService _eventLedgerService;
     private readonly ICityService _cityService;
+    private readonly int? _initialCityId;
 
     private readonly ObservableCollection<EventRow> _events = [];
 
@@ -22,10 +23,15 @@ public partial class LedgerView : UserControl
     private int _totalPages = 1;
     private bool _loaded;
 
-    public LedgerView(IEventLedgerService eventLedgerService, ICityService cityService)
+    public LedgerView(
+        IEventLedgerService eventLedgerService,
+        ICityService cityService,
+        int? initialCityId = null
+    )
     {
         _eventLedgerService = eventLedgerService;
         _cityService = cityService;
+        _initialCityId = initialCityId;
 
         InitializeComponent();
 
@@ -60,7 +66,11 @@ public partial class LedgerView : UserControl
             // Ledger filtering still works without a populated city list.
         }
 
-        CityFilter.SelectedIndex = 0;
+        CityFilter.SelectedItem = _initialCityId is int cityId
+            ? CityFilter.Items.OfType<CityOption>().FirstOrDefault(city => city.Id == cityId)
+            : null;
+
+        CityFilter.SelectedItem ??= CityFilter.Items[0];
     }
 
     private async Task LoadEventsAsync()

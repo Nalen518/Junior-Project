@@ -105,17 +105,31 @@
         <Grid Grid.Row="4">
             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                 <Button
+                    x:Name="AllMetricsButton"
                     Background="#E4F3F7"
                     BorderBrush="#07566B"
+                    Click="AllMetricsButton_Click"
                     Content="All metrics"
                     Foreground="#07566B"
                     Style="{StaticResource FilterButtonStyle}" />
 
-                <Button Content="Temperature" Style="{StaticResource FilterButtonStyle}" />
+                <Button
+                    x:Name="TemperatureFilterButton"
+                    Click="TemperatureFilterButton_Click"
+                    Content="Temperature"
+                    Style="{StaticResource FilterButtonStyle}" />
 
-                <Button Content="Rain" Style="{StaticResource FilterButtonStyle}" />
+                <Button
+                    x:Name="RainFilterButton"
+                    Click="RainFilterButton_Click"
+                    Content="Rain"
+                    Style="{StaticResource FilterButtonStyle}" />
 
-                <Button Content="Wind" Style="{StaticResource FilterButtonStyle}" />
+                <Button
+                    x:Name="WindFilterButton"
+                    Click="WindFilterButton_Click"
+                    Content="Wind"
+                    Style="{StaticResource FilterButtonStyle}" />
             </StackPanel>
 
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
@@ -175,14 +189,18 @@
                         <DataTemplate>
                             <controls:CityCard
                                 Margin="0,0,14,14"
+                                BellCurveZScore="{Binding BellCurveZScore}"
                                 CityClicked="CityCard_Click"
                                 CityName="{Binding CityName}"
                                 Entry="{Binding Entry}"
-                                FooterText="Waiting for baseline data"
+                                FooterText="{Binding FooterText}"
                                 Location="{Binding Location}"
-                                PrimaryText="Baseline not ready"
-                                SecondaryText="Historical data is needed before ClimaPulse can calculate an anomaly."
-                                Tier="Watch" />
+                                MetricLabel="{Binding MetricLabel}"
+                                PrimaryText="{Binding PrimaryText}"
+                                SecondaryText="{Binding SecondaryText}"
+                                Tier="{Binding Tier}"
+                                UpdatedText="{Binding UpdatedText}"
+                                ZScoreText="{Binding ZScoreText}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

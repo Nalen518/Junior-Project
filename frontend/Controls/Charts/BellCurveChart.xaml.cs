@@ -11,12 +11,27 @@ public partial class BellCurveChart : UserControl
             nameof(Metric),
             typeof(string),
             typeof(BellCurveChart),
-            new PropertyMetadata("Temperature", OnMetricChanged));
+            new PropertyMetadata("Temperature", OnChartValueChanged)
+        );
+
+    public static readonly DependencyProperty MarkerZScoreProperty =
+        DependencyProperty.Register(
+            nameof(MarkerZScore),
+            typeof(double),
+            typeof(BellCurveChart),
+            new PropertyMetadata(double.NaN, OnChartValueChanged)
+        );
 
     public string Metric
     {
         get => (string)GetValue(MetricProperty);
         set => SetValue(MetricProperty, value);
+    }
+
+    public double MarkerZScore
+    {
+        get => (double)GetValue(MarkerZScoreProperty);
+        set => SetValue(MarkerZScoreProperty, value);
     }
 
     public BellCurveChart()
@@ -41,21 +56,25 @@ public partial class BellCurveChart : UserControl
         var right = width - 14d;
         var top = 10d;
         var bottom = height - 24d;
+
         var chartWidth = right - left;
         var chartHeight = bottom - top;
 
         var curvePen = new Pen(
             new SolidColorBrush(Color.FromRgb(114, 137, 148)),
-            1);
+            1
+        );
 
         var axisPen = new Pen(
             new SolidColorBrush(Color.FromRgb(170, 188, 196)),
-            1);
+            1
+        );
 
         drawingContext.DrawLine(
             axisPen,
             new Point(left, bottom),
-            new Point(right, bottom));
+            new Point(right, bottom)
+        );
 
         var curve = new StreamGeometry();
 
@@ -83,18 +102,27 @@ public partial class BellCurveChart : UserControl
         curve.Freeze();
         drawingContext.DrawGeometry(null, curvePen, curve);
 
-        var marker = Metric switch
-        {
-            "Rain" => 3.6d,
-            "Wind" => 2.1d,
-            _ => 4.0d
-        };
+        var meanX = left + chartWidth / 2d;
 
-        var markerColor = Metric switch
+        drawingContext.DrawLine(
+            axisPen,
+            new Point(meanX, bottom),
+            new Point(meanX, bottom - chartHeight * 0.58)
+        );
+
+        if (double.IsNaN(MarkerZScore))
         {
-            "Rain" => Color.FromRgb(198, 42, 42),
-            "Wind" => Color.FromRgb(176, 112, 0),
-            _ => Color.FromRgb(198, 42, 42)
+            return;
+        }
+
+        var marker = Math.Clamp(MarkerZScore, -4d, 4d);
+
+        var markerColor = Math.Abs(MarkerZScore) switch
+        {
+            >= 4d => Color.FromRgb(198, 42, 42),
+            >= 3d => Color.FromRgb(201, 125, 0),
+            >= 2d => Color.FromRgb(176, 112, 0),
+            _ => Color.FromRgb(7, 86, 107)
         };
 
         var markerX =
@@ -102,31 +130,28 @@ public partial class BellCurveChart : UserControl
 
         var markerPen = new Pen(
             new SolidColorBrush(markerColor),
-            2);
+            2
+        );
 
         drawingContext.DrawLine(
             markerPen,
             new Point(markerX, top),
-            new Point(markerX, bottom));
+            new Point(markerX, bottom)
+        );
 
         drawingContext.DrawEllipse(
             new SolidColorBrush(markerColor),
             null,
             new Point(markerX, bottom),
             3,
-            3);
-
-        var meanX = left + chartWidth / 2d;
-
-        drawingContext.DrawLine(
-            axisPen,
-            new Point(meanX, bottom),
-            new Point(meanX, bottom - chartHeight * 0.58));
+            3
+        );
     }
 
-    private static void OnMetricChanged(
+    private static void OnChartValueChanged(
         DependencyObject dependencyObject,
-        DependencyPropertyChangedEventArgs e)
+        DependencyPropertyChangedEventArgs e
+    )
     {
         ((BellCurveChart)dependencyObject).InvalidateVisual();
     }

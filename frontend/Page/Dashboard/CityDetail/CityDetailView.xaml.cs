@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using ClimaPulse.Contracts;
 using ClimaPulse.Desktop.Formatting;
 using ClimaPulse.Desktop.Page.Dashboard.CityDetail.RemoveCity;
+using ClimaPulse.Enums;
 
 namespace ClimaPulse.Desktop.Page.Dashboard.CityDetail;
 
@@ -12,25 +13,43 @@ public partial class CityDetailView : UserControl
 {
     private readonly ProfileDto _profile;
     private WatchlistEntryDto _entry;
+
     private readonly IWatchlistService _watchlistService;
     private readonly IEventLedgerService _eventLedgerService;
+    private readonly IDashboardService _dashboardService;
+    private readonly IMonitoringService _monitoringService;
+    private readonly IBaselineService _baselineService;
     private readonly Action _goBack;
+    private readonly Action<int> _openLedgerForCity;
 
-    private ObservableCollection<EventRow> Events { get; } = [];
+    private readonly ObservableCollection<EventRow> _events = [];
+    private IReadOnlyList<BaselineDto> _baselines = [];
+    private DashboardCityDto? _dashboardCity;
+
+    private MetricType _selectedMetric = MetricType.Temperature;
 
     public CityDetailView(
         ProfileDto profile,
         WatchlistEntryDto entry,
         IWatchlistService watchlistService,
         IEventLedgerService eventLedgerService,
-        Action goBack
+        IDashboardService dashboardService,
+        IMonitoringService monitoringService,
+        IBaselineService baselineService,
+        Action goBack,
+        Action<int> openLedgerForCity
     )
     {
         _profile = profile;
         _entry = entry;
+
         _watchlistService = watchlistService;
         _eventLedgerService = eventLedgerService;
+        _dashboardService = dashboardService;
+        _monitoringService = monitoringService;
+        _baselineService = baselineService;
         _goBack = goBack;
+        _openLedgerForCity = openLedgerForCity;
 
         InitializeComponent();
 
@@ -45,15 +64,68 @@ public partial class CityDetailView : UserControl
 
         NotesTextBox.Text = _entry.Notes ?? string.Empty;
 
-        EventsList.ItemsSource = Events;
-        SetPreviewMetric("Temperature");
+        EventsList.ItemsSource = _events;
+
+        SetActiveMetricButton(TemperatureButton);
 
         Loaded += CityDetailView_Loaded;
     }
 
     private async void CityDetailView_Loaded(object sender, RoutedEventArgs e)
     {
+        await LoadPageAsync();
+    }
+
+    private async Task LoadPageAsync()
+    {
+        RefreshButton.IsEnabled = false;
+        ReadingStatusText.Text = "Loading current climate data…";
+
+        await LoadBaselinesAsync();
+        await LoadCurrentReadingAsync();
         await LoadEventsAsync();
+
+        RefreshButton.IsEnabled = true;
+    }
+
+    private async Task LoadBaselinesAsync()
+    {
+        try
+        {
+            _baselines = await _baselineService.ListAsync(_entry.City.Id);
+        }
+        catch (ClimaPulseException ex)
+        {
+            ReadingStatusText.Text = ex.Message;
+        }
+        catch (Exception)
+        {
+            ReadingStatusText.Text = "Baseline data could not be loaded.";
+        }
+    }
+
+    private async Task LoadCurrentReadingAsync()
+    {
+        try
+        {
+            var dashboard = await _dashboardService.GetAsync(_profile.Id);
+
+            _dashboardCity = dashboard.Cities.FirstOrDefault(city =>
+                city.City.Id == _entry.City.Id
+            );
+
+            RenderSelectedMetric();
+        }
+        catch (ClimaPulseException ex)
+        {
+            ReadingStatusText.Text = ex.Message;
+            RenderSelectedMetric();
+        }
+        catch (Exception)
+        {
+            ReadingStatusText.Text = "Current weather could not be loaded.";
+            RenderSelectedMetric();
+        }
     }
 
     private async Task LoadEventsAsync()
@@ -66,11 +138,11 @@ public partial class CityDetailView : UserControl
                 pageSize: 5
             );
 
-            Events.Clear();
+            _events.Clear();
 
             foreach (var item in page.Items)
             {
-                Events.Add(
+                _events.Add(
                     new EventRow(
                         item.Tier.ToString(),
                         FormatDateRange(item),
@@ -80,7 +152,7 @@ public partial class CityDetailView : UserControl
             }
 
             EventsEmptyText.Text =
-                Events.Count == 0 ? "No anomaly events for this city yet." : string.Empty;
+                _events.Count == 0 ? "No anomaly events for this city yet." : string.Empty;
         }
         catch
         {
@@ -88,80 +160,209 @@ public partial class CityDetailView : UserControl
         }
     }
 
+    private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshButton.IsEnabled = false;
+        RefreshButton.Content = "Refreshing…";
+        ReadingStatusText.Text = "Fetching the latest weather reading…";
+
+        try
+        {
+            await _monitoringService.RefreshCityAsync(_entry.City.Id);
+
+            await LoadCurrentReadingAsync();
+            await LoadEventsAsync();
+        }
+        catch (ClimaPulseException ex)
+        {
+            ReadingStatusText.Text = ex.Message;
+        }
+        catch (Exception)
+        {
+            ReadingStatusText.Text =
+                "This city could not be refreshed. Check your internet connection and try again.";
+        }
+        finally
+        {
+            RefreshButton.Content = "Refresh";
+            RefreshButton.IsEnabled = true;
+        }
+    }
+
     private void TemperatureButton_Click(object sender, RoutedEventArgs e)
     {
-        SetPreviewMetric("Temperature");
+        SelectMetric(MetricType.Temperature, TemperatureButton);
     }
 
     private void RainButton_Click(object sender, RoutedEventArgs e)
     {
-        SetPreviewMetric("Rain");
+        SelectMetric(MetricType.Precipitation, RainButton);
     }
 
     private void WindButton_Click(object sender, RoutedEventArgs e)
     {
-        SetPreviewMetric("Wind");
+        SelectMetric(MetricType.WindSpeed, WindButton);
     }
 
-    private void SetPreviewMetric(string metric)
+    private void SelectMetric(MetricType metric, Button selectedButton)
     {
-        BellCurve.Metric = metric;
-        TrendChart.Metric = metric;
+        _selectedMetric = metric;
 
-        if (metric == "Temperature")
+        SetActiveMetricButton(selectedButton);
+        RenderSelectedMetric();
+    }
+
+    private void RenderSelectedMetric()
+    {
+        var reading = _dashboardCity?.Metrics.FirstOrDefault(metric =>
+            metric.Metric == _selectedMetric
+        );
+
+        var fallbackBaseline = _baselines.FirstOrDefault(baseline =>
+            baseline.Metric == _selectedMetric && baseline.Month == DateTime.UtcNow.Month
+        );
+
+        BellCurve.Metric = GetMetricName(_selectedMetric);
+        BellCurve.MarkerZScore = reading?.ZScore ?? double.NaN;
+
+        if (reading is null)
         {
-            PreviewValueText.Text = TemperatureDisplay.Format(
-                36.9,
-                _profile.PreferredTemperatureUnit
-            );
+            PreviewValueText.Text = "No live reading";
+            NormalValueText.Text = fallbackBaseline is null
+                ? "—"
+                : FormatValue(fallbackBaseline.Mean, _selectedMetric);
 
-            NormalValueText.Text = TemperatureDisplay.Format(
-                32.6,
-                _profile.PreferredTemperatureUnit
-            );
+            StandardDeviationText.Text = fallbackBaseline is null
+                ? "—"
+                : FormatDifference(fallbackBaseline.StdDev, _selectedMetric);
 
-            StandardDeviationText.Text = TemperatureDisplay.FormatDifference(
-                1.0,
-                _profile.PreferredTemperatureUnit
-            );
+            ZScoreText.Text = "—";
 
-            ZScoreText.Text = "+4.3";
+            PreviewExplanationText.Text = fallbackBaseline is null
+                ? "Refresh this city after its historical baseline has been prepared."
+                : "Use Refresh to fetch today’s weather and compare it with the baseline.";
 
-            PreviewExplanationText.Text = "Far hotter than usual for this time of year.";
+            ReadingStatusText.Text = "No current reading has been fetched in this app session.";
 
-            TrendDescriptionText.Text = "Sample daily mean-temperature preview.";
-
-            SetActiveMetricButton(TemperatureButton);
+            AdvisoriesList.ItemsSource = Array.Empty<AdvisoryDto>();
+            AdvisoriesPanel.Visibility = Visibility.Collapsed;
 
             return;
         }
 
-        if (metric == "Rain")
+        PreviewValueText.Text = reading.ObservedValue is double observed
+            ? FormatValue(observed, _selectedMetric)
+            : "No data";
+
+        NormalValueText.Text = reading.BaselineMean is double mean
+            ? FormatValue(mean, _selectedMetric)
+            : "—";
+
+        StandardDeviationText.Text = reading.BaselineStdDev is double stdDev
+            ? FormatDifference(stdDev, _selectedMetric)
+            : "—";
+
+        ZScoreText.Text = reading.ZScore is double zScore
+            ? zScore.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture)
+            : "—";
+
+        PreviewExplanationText.Text = GetReadingExplanation(reading);
+
+        ReadingStatusText.Text = reading.ObservedAt is DateTime observedAt
+            ? $"Live reading from {observedAt.ToLocalTime():d MMM yyyy, HH:mm}"
+            : GetDataStatusText(reading.DataStatus);
+
+        AdvisoriesList.ItemsSource = reading.Advisories;
+        AdvisoriesPanel.Visibility =
+            reading.Advisories.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private string GetReadingExplanation(MetricReadingDto reading)
+    {
+        if (reading.DataStatus != DataStatus.Ok)
         {
-            PreviewValueText.Text = "41.2 mm";
-            NormalValueText.Text = "9.8 mm";
-            StandardDeviationText.Text = "8.7 mm";
-            ZScoreText.Text = "+3.6";
-
-            PreviewExplanationText.Text = "Much wetter than usual for this time of year.";
-
-            TrendDescriptionText.Text = "Sample daily rainfall preview. The final bar is today.";
-
-            SetActiveMetricButton(RainButton);
-
-            return;
+            return GetDataStatusText(reading.DataStatus);
         }
 
-        PreviewValueText.Text = "20.1 km/h";
-        NormalValueText.Text = "12.4 km/h";
-        StandardDeviationText.Text = "3.7 km/h";
-        ZScoreText.Text = "+2.1";
+        var tier = reading.Tier ?? SeverityTier.Normal;
 
-        PreviewExplanationText.Text = "Wind is stronger than normal for this time of year.";
+        return tier switch
+        {
+            SeverityTier.Normal =>
+                $"{GetMetricName(_selectedMetric)} is within its expected range for this time of year.",
 
-        TrendDescriptionText.Text = "Sample daily maximum wind-speed preview.";
+            SeverityTier.Watch =>
+                $"{GetMetricName(_selectedMetric)} is unusual compared with its 30-year normal.",
 
-        SetActiveMetricButton(WindButton);
+            SeverityTier.Warning =>
+                $"{GetMetricName(_selectedMetric)} is significantly unusual for this time of year.",
+
+            SeverityTier.Extreme =>
+                $"{GetMetricName(_selectedMetric)} is extremely unusual for this time of year.",
+
+            _ => "Current climate comparison is unavailable.",
+        };
+    }
+
+    private static string GetDataStatusText(DataStatus status)
+    {
+        return status switch
+        {
+            DataStatus.NoBaseline =>
+                "Historical baseline data is needed before an anomaly can be calculated.",
+
+            DataStatus.ZeroVariance =>
+                "This month’s baseline has zero variance, so a z-score cannot be calculated.",
+
+            DataStatus.NoData => "Open-Meteo did not return a reading for this metric.",
+
+            _ => "Current climate comparison is unavailable.",
+        };
+    }
+
+    private string FormatValue(double value, MetricType metric)
+    {
+        return metric switch
+        {
+            MetricType.Temperature => TemperatureDisplay.Format(
+                value,
+                _profile.PreferredTemperatureUnit
+            ),
+
+            MetricType.Precipitation => $"{value.ToString("0.0", CultureInfo.InvariantCulture)} mm",
+
+            MetricType.WindSpeed => $"{value.ToString("0.0", CultureInfo.InvariantCulture)} km/h",
+
+            _ => value.ToString("0.0", CultureInfo.InvariantCulture),
+        };
+    }
+
+    private string FormatDifference(double value, MetricType metric)
+    {
+        return metric switch
+        {
+            MetricType.Temperature => TemperatureDisplay.FormatDifference(
+                value,
+                _profile.PreferredTemperatureUnit
+            ),
+
+            MetricType.Precipitation => $"{value.ToString("0.0", CultureInfo.InvariantCulture)} mm",
+
+            MetricType.WindSpeed => $"{value.ToString("0.0", CultureInfo.InvariantCulture)} km/h",
+
+            _ => value.ToString("0.0", CultureInfo.InvariantCulture),
+        };
+    }
+
+    private static string GetMetricName(MetricType metric)
+    {
+        return metric switch
+        {
+            MetricType.Temperature => "Temperature",
+            MetricType.Precipitation => "Rain",
+            MetricType.WindSpeed => "Wind",
+            _ => "Weather",
+        };
     }
 
     private void SetActiveMetricButton(Button activeButton)
@@ -222,6 +423,11 @@ public partial class CityDetailView : UserControl
 
             SettingsMessageText.Text = ex.Message;
         }
+    }
+
+    private void OpenInLedgerButton_Click(object sender, RoutedEventArgs e)
+    {
+        _openLedgerForCity(_entry.City.Id);
     }
 
     private void BackButton_Click(object sender, RoutedEventArgs e)

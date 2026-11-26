@@ -220,12 +220,56 @@
                                 Foreground="#1F2933"
                                 Text="Loading city count…" />
 
-                            <Button
+                            <TextBlock
                                 Margin="0,14,0,0"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Foreground="#1F2933"
+                                Text="Refresh baseline for" />
+
+                            <ComboBox
+                                x:Name="BaselineCityComboBox"
+                                Margin="0,7,0,0"
+                                DisplayMemberPath="City.Name"
+                                SelectedValuePath="City.Id"
+                                SelectionChanged="BaselineCityComboBox_SelectionChanged" />
+
+                            <TextBlock
+                                x:Name="NoCitiesText"
+                                Margin="0,7,0,0"
+                                FontSize="10"
+                                Foreground="#82919C"
+                                Text="Add a city before refreshing its climate baseline."
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+
+                            <Button
+                                x:Name="RefreshBaselinesButton"
+                                Margin="0,12,0,0"
                                 HorizontalAlignment="Left"
-                                Content="Refresh baselines"
+                                Click="RefreshBaselinesButton_Click"
+                                Content="Refresh selected baseline"
                                 IsEnabled="False"
-                                ToolTip="Baseline refresh needs IBaselineService, which is not implemented yet." />
+                                ToolTip="Recalculate the selected city’s 30-year climate baseline." />
+
+                            <StackPanel
+                                x:Name="BaselineProgressPanel"
+                                Margin="0,12,0,0"
+                                Visibility="Collapsed">
+
+                                <TextBlock
+                                    x:Name="BaselineProgressText"
+                                    FontSize="11"
+                                    Foreground="#07566B"
+                                    TextWrapping="Wrap" />
+
+                                <ProgressBar
+                                    x:Name="BaselineProgressBar"
+                                    Height="7"
+                                    Margin="0,6,0,0"
+                                    Maximum="100"
+                                    Value="0" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

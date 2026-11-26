@@ -66,11 +66,12 @@
                         Content="Wind" />
 
                     <Button
+                        x:Name="RefreshButton"
                         Margin="18,0,0,0"
                         Padding="11,5"
+                        Click="RefreshButton_Click"
                         Content="Refresh"
-                        IsEnabled="False"
-                        ToolTip="City refresh needs IMonitoringService, which is not implemented yet." />
+                        ToolTip="Fetch the latest weather reading for this city." />
                 </StackPanel>
             </Grid>
 
@@ -98,10 +99,11 @@
                                 Text="Today vs the 30-year normal" />
 
                             <TextBlock
+                                x:Name="ReadingStatusText"
                                 Margin="0,6,0,0"
                                 FontSize="10"
                                 Foreground="#82919C"
-                                Text="Preview data · live monitoring is not connected yet." />
+                                Text="Loading current climate data…" />
 
                             <Grid Margin="0,16,0,0">
                                 <Grid.ColumnDefinitions>
@@ -192,6 +194,49 @@
                                 Height="155"
                                 Margin="0,16,0,0"
                                 Metric="Temperature" />
+
+                            <StackPanel
+                                x:Name="AdvisoriesPanel"
+                                Margin="0,16,0,0"
+                                Visibility="Collapsed">
+
+                                <TextBlock
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#1F2933"
+                                    Text="Current advisories" />
+
+                                <ItemsControl x:Name="AdvisoriesList" Margin="0,8,0,0">
+
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border
+                                                Margin="0,0,0,7"
+                                                Padding="10"
+                                                Background="#FFF8E6"
+                                                BorderBrush="#E6C77A"
+                                                BorderThickness="1"
+                                                CornerRadius="5">
+
+                                                <StackPanel>
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="#6B4D00"
+                                                        Text="{Binding Title}" />
+
+                                                    <TextBlock
+                                                        Margin="0,4,0,0"
+                                                        FontSize="10"
+                                                        Foreground="#594400"
+                                                        Text="{Binding Body}"
+                                                        TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -211,16 +256,25 @@
                                 Text="Last 14 days" />
 
                             <TextBlock
-                                x:Name="TrendDescriptionText"
                                 Margin="0,6,0,0"
                                 FontSize="10"
-                                Foreground="#82919C" />
+                                Foreground="#82919C"
+                                Text="A daily-history contract is needed before this chart can show real values." />
 
-                            <charts:TrendChart
-                                x:Name="TrendChart"
-                                Height="175"
+                            <Border
                                 Margin="0,12,0,0"
-                                Metric="Temperature" />
+                                Padding="16"
+                                Background="#F8FAFB"
+                                BorderBrush="#D9E2E8"
+                                BorderThickness="1"
+                                CornerRadius="6">
+
+                                <TextBlock
+                                    FontSize="11"
+                                    Foreground="#65737E"
+                                    Text="Recent daily history is not available yet. The current backend contract provides the live reading and 30-year baseline, but not a 14-day daily-history series."
+                                    TextWrapping="Wrap" />
+                            </Border>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -364,10 +418,10 @@
                                 HorizontalAlignment="Left"
                                 Background="Transparent"
                                 BorderThickness="0"
+                                Click="OpenInLedgerButton_Click"
                                 Content="Open in Anomaly Ledger"
                                 Foreground="#07566B"
-                                IsEnabled="False"
-                                ToolTip="Ledger navigation is the next implementation step." />
+                                ToolTip="Show anomaly events for this city." />
 
                             <Button
                                 Margin="0,12,0,0"

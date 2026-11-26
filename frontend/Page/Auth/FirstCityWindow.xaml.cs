@@ -11,6 +11,7 @@ public partial class FirstCityWindow : Window
     private readonly ProfileDto _profile;
     private readonly ICityService _cityService;
     private readonly IWatchlistService _watchlistService;
+    private readonly IBaselineService _baselineService;
 
     public ObservableCollection<CitySearchResult> Results { get; } = [];
 
@@ -20,11 +21,14 @@ public partial class FirstCityWindow : Window
     public FirstCityWindow(
         ProfileDto profile,
         ICityService cityService,
-        IWatchlistService watchlistService)
+        IWatchlistService watchlistService,
+        IBaselineService baselineService
+    )
     {
         _profile = profile;
         _cityService = cityService;
         _watchlistService = watchlistService;
+        _baselineService = baselineService;
 
         InitializeComponent();
 
@@ -34,16 +38,12 @@ public partial class FirstCityWindow : Window
         Loaded += (_, _) => SearchTextBox.Focus();
     }
 
-    private async void SearchButton_Click(
-        object sender,
-        RoutedEventArgs e)
+    private async void SearchButton_Click(object sender, RoutedEventArgs e)
     {
         await SearchAsync();
     }
 
-    private async void SearchTextBox_KeyDown(
-        object sender,
-        KeyEventArgs e)
+    private async void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
@@ -76,9 +76,8 @@ public partial class FirstCityWindow : Window
                 Results.Add(result);
             }
 
-            StatusText.Text = Results.Count == 0
-                ? "No cities found. Try a different spelling."
-                : string.Empty;
+            StatusText.Text =
+                Results.Count == 0 ? "No cities found. Try a different spelling." : string.Empty;
         }
         catch (ClimaPulseException ex)
         {
@@ -88,8 +87,7 @@ public partial class FirstCityWindow : Window
         catch (Exception)
         {
             StatusText.Text = string.Empty;
-            ShowError(
-                "The city search failed. Check your internet connection and try again.");
+            ShowError("The city search failed. Check your internet connection and try again.");
         }
         finally
         {
@@ -97,17 +95,12 @@ public partial class FirstCityWindow : Window
         }
     }
 
-    private void ResultsList_SelectionChanged(
-        object sender,
-        SelectionChangedEventArgs e)
+    private void ResultsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        AddCityButton.IsEnabled =
-            ResultsList.SelectedItem is CitySearchResult;
+        AddCityButton.IsEnabled = ResultsList.SelectedItem is CitySearchResult;
     }
 
-    private async void AddCityButton_Click(
-        object sender,
-        RoutedEventArgs e)
+    private async void AddCityButton_Click(object sender, RoutedEventArgs e)
     {
         if (ResultsList.SelectedItem is not CitySearchResult selectedCity)
         {
@@ -116,40 +109,51 @@ public partial class FirstCityWindow : Window
 
         AddCityButton.IsEnabled = false;
         SearchButton.IsEnabled = false;
+        ResultsList.IsEnabled = false;
         ErrorText.Visibility = Visibility.Collapsed;
-        StatusText.Text = $"Adding {selectedCity.Name}…";
 
         try
         {
+            StatusText.Text = $"Adding {selectedCity.Name}…";
+
             var storedCity = await _cityService.AddAsync(selectedCity);
 
-            await _watchlistService.AddAsync(
-                _profile.Id,
-                new AddWatchlistRequest(storedCity.Id));
+            await _watchlistService.AddAsync(_profile.Id, new AddWatchlistRequest(storedCity.Id));
+
+            var progress = new Progress<int>(percentage =>
+            {
+                StatusText.Text = $"Preparing 30 years of climate history… {percentage}%";
+            });
+
+            await _baselineService.RefreshAsync(storedCity.Id, progress);
+
+            StatusText.Text = "Baseline ready.";
 
             DialogResult = true;
         }
         catch (ConflictException)
         {
-            // The city is already on this profile's watchlist.
-            // It is safe to continue to the application.
             DialogResult = true;
         }
         catch (ClimaPulseException ex)
         {
-            StatusText.Text = string.Empty;
             ShowError(ex.Message);
+            StatusText.Text = string.Empty;
         }
         catch (Exception)
         {
-            StatusText.Text = string.Empty;
             ShowError(
-                "The city could not be added. Check the database connection and try again.");
+                "The city was added, but its historical baseline could not be prepared. "
+                    + "You can retry the baseline refresh later from Settings."
+            );
+
+            StatusText.Text = string.Empty;
         }
         finally
         {
             AddCityButton.IsEnabled = true;
             SearchButton.IsEnabled = true;
+            ResultsList.IsEnabled = true;
         }
     }
 

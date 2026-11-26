@@ -11,17 +11,23 @@ public partial class AddCityWindow : Window
     private readonly ProfileDto _profile;
     private readonly ICityService _cityService;
     private readonly IWatchlistService _watchlistService;
+    private readonly IBaselineService _baselineService;
+
+    private bool _isImportingBaseline;
 
     private ObservableCollection<CitySearchResult> Results { get; } = [];
 
     public AddCityWindow(
         ProfileDto profile,
         ICityService cityService,
-        IWatchlistService watchlistService)
+        IWatchlistService watchlistService,
+        IBaselineService baselineService
+    )
     {
         _profile = profile;
         _cityService = cityService;
         _watchlistService = watchlistService;
+        _baselineService = baselineService;
 
         InitializeComponent();
 
@@ -32,14 +38,16 @@ public partial class AddCityWindow : Window
 
     private async void SearchButton_Click(
         object sender,
-        RoutedEventArgs e)
+        RoutedEventArgs e
+    )
     {
         await SearchAsync();
     }
 
     private async void SearchTextBox_KeyDown(
         object sender,
-        KeyEventArgs e)
+        KeyEventArgs e
+    )
     {
         if (e.Key == Key.Enter)
         {
@@ -89,7 +97,8 @@ public partial class AddCityWindow : Window
         catch (Exception)
         {
             ShowError(
-                "City search needs an internet connection. Try again in a moment.");
+                "City search needs an internet connection. Try again in a moment."
+            );
         }
         finally
         {
@@ -100,7 +109,8 @@ public partial class AddCityWindow : Window
 
     private async void AddResultButton_Click(
         object sender,
-        RoutedEventArgs e)
+        RoutedEventArgs e
+    )
     {
         if (sender is not Button { Tag: CitySearchResult city })
         {
@@ -108,6 +118,9 @@ public partial class AddCityWindow : Window
         }
 
         AlreadyAddedText.Visibility = Visibility.Collapsed;
+        BaselineProgressPanel.Visibility = Visibility.Visible;
+
+        SetImportingState(true);
 
         try
         {
@@ -115,7 +128,26 @@ public partial class AddCityWindow : Window
 
             await _watchlistService.AddAsync(
                 _profile.Id,
-                new AddWatchlistRequest(storedCity.Id));
+                new AddWatchlistRequest(storedCity.Id)
+            );
+
+            var progress = new Progress<int>(percentage =>
+            {
+                BaselineProgressBar.Value = percentage;
+
+                BaselineProgressText.Text =
+                    percentage switch
+                    {
+                        < 60 => "Downloading 30 years of historical weather data…",
+                        < 100 => "Calculating monthly climate baselines…",
+                        _ => "Baseline ready."
+                    };
+            });
+
+            await _baselineService.RefreshAsync(
+                storedCity.Id,
+                progress
+            );
 
             DialogResult = true;
         }
@@ -125,26 +157,49 @@ public partial class AddCityWindow : Window
                 $"{city.Name} is already on your watchlist.";
 
             AlreadyAddedText.Visibility = Visibility.Visible;
+            BaselineProgressPanel.Visibility = Visibility.Collapsed;
         }
         catch (ClimaPulseException ex)
         {
             AlreadyAddedText.Text = ex.Message;
             AlreadyAddedText.Visibility = Visibility.Visible;
+            BaselineProgressPanel.Visibility = Visibility.Collapsed;
         }
         catch (Exception)
         {
             AlreadyAddedText.Text =
-                "The city could not be added. Check the database connection and try again.";
+                "The city was added, but its baseline import failed. " +
+                "You can retry it later from Settings.";
 
             AlreadyAddedText.Visibility = Visibility.Visible;
+            BaselineProgressPanel.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            SetImportingState(false);
         }
     }
 
     private void CancelButton_Click(
         object sender,
-        RoutedEventArgs e)
+        RoutedEventArgs e
+    )
     {
+        if (_isImportingBaseline)
+        {
+            return;
+        }
+
         DialogResult = false;
+    }
+
+    private void SetImportingState(bool isImporting)
+    {
+        _isImportingBaseline = isImporting;
+
+        SearchTextBox.IsEnabled = !isImporting;
+        SearchButton.IsEnabled = !isImporting;
+        ResultsList.IsEnabled = !isImporting;
     }
 
     private void ResetPanels()
@@ -154,6 +209,9 @@ public partial class AddCityWindow : Window
         ErrorPanel.Visibility = Visibility.Collapsed;
         NoResultsPanel.Visibility = Visibility.Collapsed;
         AlreadyAddedText.Visibility = Visibility.Collapsed;
+        BaselineProgressPanel.Visibility = Visibility.Collapsed;
+        BaselineProgressBar.Value = 0;
+        BaselineProgressText.Text = string.Empty;
     }
 
     private void ShowError(string message)
