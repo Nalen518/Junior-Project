@@ -266,7 +266,8 @@ public partial class LedgerView : UserControl
             $"Started: {row.Started}\n\n"
             + $"Ended: {row.Ended}\n\n"
             + $"Peak value: {row.Peak}\n\n"
-            + $"Peak z-score: {row.PeakZ}";
+            + $"Peak z-score: {row.PeakZ}\n\n"
+            + $"Advisory shown: {row.AdvisoryShown}";
 
         DrawerColumn.Width = new GridLength(295);
         DetailsDrawer.Visibility = Visibility.Visible;
@@ -296,7 +297,8 @@ public partial class LedgerView : UserControl
                 ?? "Active",
             item.PeakObservedValue.ToString("0.##", CultureInfo.InvariantCulture),
             item.PeakZScore.ToString("+0.0;-0.0", CultureInfo.InvariantCulture),
-            item.Status.ToString()
+            item.Status.ToString(),
+            item.AdvisoryTitle ?? "None"
         );
 
     private sealed record CityOption(int Id, string Name);
@@ -309,6 +311,7 @@ public partial class LedgerView : UserControl
         string Ended,
         string Peak,
         string PeakZ,
-        string Status
+        string Status,
+        string AdvisoryShown
     );
 }
