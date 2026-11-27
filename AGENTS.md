@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for AI coding agents working in this repository. Humans: the long version is `docs/github-ai-agent-rules.md`.
+Instructions for AI coding agents working in this repository.
 
 ## Project
 
@@ -10,7 +10,7 @@ ClimaPulse is a Windows desktop app (WPF) that compares live weather against 30-
 - Backend: services, repositories and `WeatherService` in `backend/` (a class library, no web server)
 - Contract between them: interfaces, DTOs, enums and exceptions in `shared/ClimaPulse.Contracts` (once created). Read `docs/api-contract.md` before touching a service, DTO or component.
 - Database: PostgreSQL through Npgsql, schema in `backend/Database/schema.sql`. Connection string from `CLIMAPULSE_DB_CONNECTION` (see `backend/.env.example`).
-- Requirements: `docs/SRD.md`. Architecture and setup: `docs/references-desktop-architecture.md`
+- Requirements: `docs/SRD.md`.
 - Class diagrams: `docs/class-diagram/`
 
 ## Architecture rules
@@ -55,4 +55,4 @@ ClimaPulse is a Windows desktop app (WPF) that compares live weather against 30-
 
 ## PRs
 
-Use `docs/pull_request_template.md`. Do not mention AI tools as authors or contributors in commits or PR text.
+Do not mention AI tools as authors or contributors in commits or PR text.
