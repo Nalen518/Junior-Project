@@ -215,6 +215,13 @@ public partial class CityDetailView : UserControl
         BellCurve.Metric = MetricDisplay.Name(metric);
         BellCurve.ZScore = reading?.ZScore;
 
+        BellCurveCaptionText.Text =
+            $"How to read: the curve shows how common each {MetricDisplay.Name(metric).ToLowerInvariant()} value was "
+            + $"on {monthName} days in 1995–2024. The grey middle line is the 30-year normal"
+            + (reading?.ZScore is null
+                ? ". Today's red line appears after a refresh."
+                : "; the red line is today. The further apart they are, the more unusual today is.");
+
         TodayExplanationText.Text = _refreshedAt is null
             ? "Not refreshed yet. Press Refresh to compare today with the normal."
             : reading?.DataStatus switch
@@ -229,14 +236,22 @@ public partial class CityDetailView : UserControl
         ShowAdvice(reading?.Advisories ?? []);
 
         await LoadBaselineNoteAsync(metric, month, monthName);
-        await LoadTrendAsync(metric);
+        await LoadTrendAsync(metric, reading, monthName);
     }
 
-    /// <summary>The 14-day chart (S4 "Last 14 days"), with a one-sentence summary (OPEN-9).</summary>
-    private async Task LoadTrendAsync(MetricType metric)
+    /// <summary>The 14-day chart (S4 "Last 14 days"), with a caption that says what each mark means (OPEN-9).</summary>
+    private async Task LoadTrendAsync(MetricType metric, MetricReadingDto? reading, string monthName)
     {
         TrendChart.Metric = MetricDisplay.Name(metric);
         TrendChart.Values = null;
+
+        // Normal range = this month's 30-year average ± 1 std dev (rain cannot go below 0).
+        double? normalLow = reading is { BaselineMean: { } mean, BaselineStdDev: { } spread }
+            ? metric == MetricType.Precipitation ? Math.Max(0, mean - spread) : mean - spread
+            : null;
+        double? normalHigh = reading is { BaselineMean: { } m, BaselineStdDev: { } s } ? m + s : null;
+        TrendChart.NormalLow = normalLow;
+        TrendChart.NormalHigh = normalHigh;
         TrendSummaryText.Text = "Loading the last 14 days…";
         TrendStateMessage.Visibility = Visibility.Collapsed;
 
@@ -262,8 +277,21 @@ public partial class CityDetailView : UserControl
 
             var unit = _profile.PreferredTemperatureUnit;
             TrendChart.Values = days.Select(item => item.ObservedValue!.Value).ToList();
+            var marks = metric switch
+            {
+                MetricType.Precipitation => "Each bar is one day's total rain",
+                MetricType.WindSpeed => "The line is each day's maximum wind speed",
+                _ => "The line is each day's mean temperature",
+            };
+
+            var band = normalLow is { } bandLow && normalHigh is { } bandHigh
+                ? $" The shaded band is the normal range for {monthName} (30-year average ± 1 std dev: "
+                    + $"{MetricDisplay.Value(metric, bandLow, unit)} to {MetricDisplay.Value(metric, bandHigh, unit)})."
+                : " Refresh the city to see the normal range.";
+
             TrendSummaryText.Text =
-                $"From {MetricDisplay.Value(metric, days[0].ObservedValue!.Value, unit)} "
+                $"{marks}; red is today.{band} "
+                + $"From {MetricDisplay.Value(metric, days[0].ObservedValue!.Value, unit)} "
                 + $"to {MetricDisplay.Value(metric, days[^1].ObservedValue!.Value, unit)} today "
                 + $"({days.Count} days with data).";
         }
