@@ -129,7 +129,7 @@ An anomaly episode opens at |z| ≥ 2.0 and closes when |z| drops below 1.75, so
 
 | Grading criterion | Weight | Where it is in ClimaPulse |
 | --- | --- | --- |
-| **Process 1.** Teamwork | 10% | [Team](#team) roles, one branch and pull request per task with a reviewer, the [task list](docs/team-tasks.md) |
+| **Process 1.** Teamwork | 10% | [Team](#team) roles, one branch and pull request per task with a reviewer |
 | **Process 2.** Engineering design principles | 10% | [Why choose these](#why-choose-these), the [API contract](docs/api-contract.md), [class diagrams](#class-diagrams-module-3), CI in `.github/workflows/ci.yml` |
 | **Process 3.** Deliverables match expected outcomes | 10% | [What you can do](#what-you-can-do) and [Where it is in the code](#where-it-is-in-the-code), each tied to a requirement in the [SRD](docs/SRD.md) |
 | **Process 4.** Quizzes and understanding | 10% | Individual, in class |
@@ -183,10 +183,6 @@ The class diagrams match the 7-table database (UserProfile, City, Watchlist, His
 | --- | --- |
 | [`docs/SRD.md`](docs/SRD.md) | Requirements, constraints, grading criteria and decisions |
 | [`docs/api-contract.md`](docs/api-contract.md) | The contract between frontend and backend, and the Open-Meteo details |
-| [`docs/references-desktop-architecture.md`](docs/references-desktop-architecture.md) | Architecture, project setup and pitfalls |
-| [`docs/design-references.md`](docs/design-references.md) | Screens, colours and accessibility |
-| [`docs/team-tasks.md`](docs/team-tasks.md) | Who does what |
-| [`docs/github-ai-agent-rules.md`](docs/github-ai-agent-rules.md) | Git and AI tool rules for the team |
 
 ## What comes next
 
@@ -218,7 +214,7 @@ dotnet run --project frontend\ClimaPulse.Desktop.csproj
 | `backend/Database/` | `schema.sql`, `seed.sql`, `schema.dbml` |
 | `shared/ClimaPulse.Contracts/` | Interfaces, DTOs, enums and exceptions shared by both sides |
 | `tests/ClimaPulse.Backend.Tests/` | xUnit tests: unit tests and database tests |
-| `docs/` | SRD, API contract, architecture, design references, class diagrams |
+| `docs/` | SRD, API contract, class diagrams, the GitHub Page and screenshots |
 | `.github/workflows/ci.yml` | CI: build with warnings as errors, all tests with PostgreSQL, schema and seed load |
 
 ## Data and credits
