@@ -215,6 +215,13 @@
                                 Metric="Temperature" />
 
                             <TextBlock
+                                x:Name="BellCurveCaptionText"
+                                Margin="0,10,0,0"
+                                FontSize="11"
+                                Foreground="#5F6B74"
+                                TextWrapping="Wrap" />
+
+                            <TextBlock
                                 x:Name="BaselineNoteText"
                                 Margin="0,10,0,0"
                                 FontSize="10"

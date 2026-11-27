@@ -104,6 +104,12 @@ public partial class BellCurveChart : UserControl
             new Point(meanX, bottom),
             new Point(meanX, bottom - chartHeight * 0.58));
 
+        // Labels so the reader knows which line is which (city detail S4).
+        var grey = new SolidColorBrush(Color.FromRgb(101, 115, 126));
+        DrawLabel(drawingContext, "Normal (30-year average)", meanX, bottom + 4, grey, TextAlignment.Center);
+        DrawLabel(drawingContext, "← lower than usual", left, bottom + 4, grey, TextAlignment.Left);
+        DrawLabel(drawingContext, "higher than usual →", right, bottom + 4, grey, TextAlignment.Right);
+
         if (ZScore is not { } z)
         {
             return;
@@ -131,6 +137,37 @@ public partial class BellCurveChart : UserControl
             new Point(markerX, bottom),
             3,
             3);
+
+        // "Today" beside the marker, on the side with room.
+        var labelOnLeft = markerX > right - 60;
+        DrawLabel(
+            drawingContext,
+            "Today",
+            labelOnLeft ? markerX - 5 : markerX + 5,
+            top,
+            new SolidColorBrush(markerColor),
+            labelOnLeft ? TextAlignment.Right : TextAlignment.Left);
+    }
+
+    private void DrawLabel(DrawingContext drawingContext, string text, double x, double y, Brush brush, TextAlignment alignment)
+    {
+        var formatted = new FormattedText(
+            text,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"),
+            10,
+            brush,
+            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+        var offset = alignment switch
+        {
+            TextAlignment.Center => formatted.Width / 2,
+            TextAlignment.Right => formatted.Width,
+            _ => 0d,
+        };
+
+        drawingContext.DrawText(formatted, new Point(x - offset, y));
     }
 
     private static void OnMetricChanged(
