@@ -22,7 +22,15 @@ with health and climate advice for that tier. Every anomaly episode is kept in a
 
 ## Screenshots
 
-Screenshots of the release build go in `docs/screenshots/` together with the first GitHub Release. The screen designs (Figma "Junpro", Set A) are S1 Profile picker, S2 Add city, S3 Dashboard, S4 City detail, S5 Anomaly ledger and S6 Settings.
+From the app with live Open-Meteo data (27 Nov 2026). Website: [rdiit6.github.io/Junior-Project](https://rdiit6.github.io/Junior-Project/).
+
+| Dashboard: each city against its own normal | City detail: today vs the 30-year normal, advice, last 14 days |
+| --- | --- |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![City detail](docs/screenshots/city-detail.png) |
+| **Anomaly ledger: an Extreme rain episode and its advice** | **Add a city: search any city in the world** |
+| ![Anomaly ledger with the event drawer](docs/screenshots/ledger-drawer.png) | ![Add a city](docs/screenshots/add-city.png) |
+| **Anomaly ledger: filters and export** | **Settings: units, profile and baselines** |
+| ![Anomaly ledger](docs/screenshots/ledger.png) | ![Settings](docs/screenshots/settings.png) |
 
 ## Try it (for lecturers)
 
