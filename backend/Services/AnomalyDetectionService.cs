@@ -16,26 +16,60 @@ public class AnomalyDetectionService
     public const double WarningThreshold = 3.0;
     public const double ExtremeThreshold = 4.0;
 
-    private readonly IAnomalyStrategy _strategy;
+    /// <summary>An open event closes below this |z| (2.0 - 0.25 hysteresis margin).</summary>
+    public const double CloseThreshold = 1.75;
+
+    // One strategy per metric. Callers only see IAnomalyStrategy (polymorphism).
+    private readonly IReadOnlyDictionary<MetricType, IAnomalyStrategy> _strategies;
     private readonly WeatherService _weatherService;
     private readonly BaselineRepository _baselineRepo;
     private readonly AnomalyEventRepository _eventRepo;
 
     public AnomalyDetectionService(
-        IAnomalyStrategy strategy,
+        IReadOnlyDictionary<MetricType, IAnomalyStrategy> strategies,
         WeatherService weatherService,
         BaselineRepository baselineRepo,
         AnomalyEventRepository eventRepo)
     {
-        _strategy = strategy;
+        ArgumentNullException.ThrowIfNull(strategies);
+        _strategies = strategies;
         _weatherService = weatherService;
         _baselineRepo = baselineRepo;
         _eventRepo = eventRepo;
     }
 
-    public async Task<AnomalyResult> AnalyzeCityAsync(City city)
+    /// <summary>
+    /// Judges one reading against its monthly baseline (SRD FR-10, FR-11): picks the strategy
+    /// for the baseline's metric, lets that strategy compute the z-score, then sets the tier.
+    /// The same call works for temperature and rain because each strategy overrides Evaluate.
+    /// </summary>
+    public AnomalyResult Evaluate(double observed, Baseline baseline)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(baseline);
+        if (!_strategies.TryGetValue(baseline.MetricType, out var strategy))
+            throw new NotSupportedException($"No anomaly strategy for {baseline.MetricType} yet.");
+
+        var result = strategy.Evaluate(observed, baseline);
+        result.SeverityTier = AssignTier(result.DeviationSigma);
+        return result;
+    }
+
+    /// <summary>
+    /// Hysteresis for the event ledger (SRD FR-22 to FR-25, OPEN-1): an event opens at |z| >= 2.0
+    /// and stays open until |z| drops below 1.75, so a reading hovering near 2.0 makes one event,
+    /// not many. A sign flip (hot to cold) closes the event; the caller then decides again with
+    /// no open event, which opens a new one if the reading is still anomalous.
+    /// </summary>
+    public static EventAction DecideEvent(AnomalyEvent? openEvent, double zScore)
+    {
+        var magnitude = Math.Abs(zScore);
+        if (openEvent is null)
+            return magnitude >= WatchThreshold ? EventAction.Open : EventAction.Nothing;
+
+        if (magnitude < CloseThreshold || Math.Sign(zScore) != Math.Sign(openEvent.PeakZScore))
+            return EventAction.Close;
+
+        return magnitude > Math.Abs(openEvent.PeakZScore) ? EventAction.UpdatePeak : EventAction.Nothing;
     }
 
     /// <summary>
@@ -51,4 +85,13 @@ public class AnomalyDetectionService
         if (magnitude >= WatchThreshold) return SeverityTier.Watch;
         return SeverityTier.Normal;
     }
+}
+
+/// <summary>What a new reading does to the open event of its city and metric.</summary>
+public enum EventAction
+{
+    Nothing,
+    Open,
+    UpdatePeak,
+    Close
 }

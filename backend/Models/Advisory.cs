@@ -11,7 +11,7 @@ public class Advisory
     public int Id { get; set; }
     public MetricType MetricType { get; set; }
     public SeverityTier SeverityTier { get; set; }
-    public string Locale { get; set; } = "id-ID";
+    public string Locale { get; set; } = "en-US";
     public AdvisoryCategory Category { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;

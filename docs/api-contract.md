@@ -1,8 +1,8 @@
 # ClimaPulse Internal API Contract (v2)
 
-Status: draft for team approval. Last updated 2026-11-16 (UI changed to Windows Forms, database to PostgreSQL).
+Status: draft for team approval. Last updated 2026-11-26 (AdvisoryTitle on AnomalyEventDto).
 
-This document is the agreement between the **frontend** (Windows Forms forms and user controls in the desktop app) and the **backend** (services, repositories, Open-Meteo access). Both sides build against the same C# interfaces and DTOs in `shared/ClimaPulse.Contracts`. That project **is** the contract. This file explains it and the rules around it. If the two ever disagree, the code in `shared/ClimaPulse.Contracts` wins and this file gets fixed.
+This document is the agreement between the **frontend** (WPF windows and user controls in the desktop app) and the **backend** (services, repositories, Open-Meteo access). Both sides build against the same C# interfaces and DTOs in `shared/ClimaPulse.Contracts`. That project **is** the contract. This file explains it and the rules around it. If the two ever disagree, the code in `shared/ClimaPulse.Contracts` wins and this file gets fixed.
 
 Derived from `docs/SRD.md` (version 0.4) and `backend/Database/schema.sql`.
 
@@ -10,7 +10,7 @@ Derived from `docs/SRD.md` (version 0.4) and `backend/Database/schema.sql`.
 
 ## 1. What changed from v1 and why
 
-Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Module 1 requires a C# desktop application, so the team runs everything **in one process**. The UI is **Windows Forms** (decided 2026-11-16; Blazor and WPF are not allowed for the UI). The UI calls C# interfaces directly, so there is no HTTP, no JSON between frontend and backend, and no `openapi.yaml`.
+Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Module 1 requires a C# desktop application, so the team runs everything **in one process**. The UI is **WPF** (accepted 2026-11-25, replacing Windows Forms; Blazor and Razor are not allowed for the UI). The UI calls C# interfaces directly, so there is no HTTP, no JSON between frontend and backend, and no `openapi.yaml`.
 
 | | v1 (HTTP, retired) | v2 (in-process, current) |
 |---|---|---|
@@ -29,9 +29,9 @@ Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Modu
 | You are | Do this |
 |---|---|
 | Backend developer | Implement the interfaces in `backend/`. Return DTOs, never `ClimaPulse.Models` entities. Throw only the exceptions in section 7 on purpose. |
-| Frontend developer | Take the interfaces as constructor parameters of forms and user controls (`public DashboardView(IDashboardService dashboard)`). Never inject a repository, `WeatherService` or any class from `backend/`. Use the fakes until the backend is ready. |
-| Reviewer | If a PR touches `shared/ClimaPulse.Contracts`, it needs one frontend and one backend reviewer (section 11). If a form or user control in `frontend/` uses anything outside `ClimaPulse.Contracts`, request changes. |
-| AI agent | Read this file before touching a service, DTO, form or user control. Never invent a method, field or exception type. |
+| Frontend developer | Take the interfaces as constructor parameters of windows and user controls (`public DashboardView(IDashboardService dashboard)`). Never inject a repository, `WeatherService` or any class from `backend/`. Use the fakes until the backend is ready. |
+| Reviewer | If a PR touches `shared/ClimaPulse.Contracts`, it needs one frontend and one backend reviewer (section 11). If a window or user control in `frontend/` uses anything outside `ClimaPulse.Contracts`, request changes. |
+| AI agent | Read this file before touching a service, DTO, window or user control. Never invent a method, field or exception type. |
 
 ---
 
@@ -39,9 +39,9 @@ Version 1 (2026-10-17) was an HTTP contract (`openapi.yaml`) for a web app. Modu
 
 ```mermaid
 flowchart TB
-    D["frontend: ClimaPulse.Desktop<br/>Windows Forms: forms + user controls"] -->|injects interfaces| C["shared: ClimaPulse.Contracts<br/>interfaces, DTOs, enums, exceptions"]
+    D["frontend: ClimaPulse.Desktop<br/>WPF: windows + user controls"] -->|injects interfaces| C["shared: ClimaPulse.Contracts<br/>interfaces, DTOs, enums, exceptions"]
     B["backend: ClimaPulse.Backend<br/>services, repositories, WeatherService"] -->|implements| C
-    D -.->|composition root only<br/>Program.cs| B
+    D -.->|composition root only<br/>App.xaml.cs| B
     B --> DB[(PostgreSQL database climapulse)]
     B --> OM[Open-Meteo]
 ```
@@ -49,8 +49,8 @@ flowchart TB
 | Project | Target | May reference | Must not reference |
 |---|---|---|---|
 | `shared/ClimaPulse.Contracts` | `net10.0` | nothing | anything |
-| `backend` (ClimaPulse.Backend) | `net10.0` | Contracts, `Npgsql` | Desktop, Windows Forms |
-| `frontend` (ClimaPulse.Desktop) | `net10.0-windows` with `<UseWindowsForms>true</UseWindowsForms>` | Contracts; Backend **only** in `Program.cs` to create services | Backend classes inside any form or user control |
+| `backend` (ClimaPulse.Backend) | `net10.0` | Contracts, `Npgsql` | Desktop, WPF |
+| `frontend` (ClimaPulse.Desktop) | `net10.0-windows` with `<UseWPF>true</UseWPF>` | Contracts; Backend **only** in `App.xaml.cs` to create services | Backend classes inside any window or user control |
 
 Contracts and Backend target plain `net10.0`, so their unit tests also run on Mac or Linux. Only the Desktop project needs Windows.
 
@@ -121,6 +121,8 @@ public interface IMonitoringService
 {
     /// <summary>Fetch live data, compute z-scores, open, update or close events. FR-06, FR-10 to FR-12, FR-22 to FR-25.</summary>
     Task<RefreshResultDto> RefreshCityAsync(int cityId, CancellationToken ct = default);     // NotFound, Upstream
+    /// <summary>Daily readings of the last days up to today, oldest first, scored against their month's baseline. Read-only: never opens events. FR-20.</summary>
+    Task<IReadOnlyList<MetricReadingDto>> GetRecentAsync(int cityId, int days = 14, CancellationToken ct = default); // NotFound, Validation, Upstream
 }
 
 public interface IBaselineService
@@ -132,7 +134,7 @@ public interface IBaselineService
 
 public interface IAdvisoryService
 {
-    /// <summary>Latest version per category, falling back to id-ID when the locale has none. FR-19.</summary>
+    /// <summary>Latest version per category, falling back to en-US when the locale has none. FR-19.</summary>
     Task<IReadOnlyList<AdvisoryDto>> GetLatestAsync(MetricType metric, SeverityTier tier, string locale, CancellationToken ct = default);
 }
 
@@ -299,7 +301,8 @@ public sealed record AnomalyEventDto(
     double BaselineMeanSnapshot,
     double BaselineStdDevSnapshot,
     EventStatus Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? AdvisoryTitle = null);          // title of the advisory version stored on the event; null when AdvisoryId is null
 
 public sealed record PagedResult<T>(
     IReadOnlyList<T> Items,
@@ -323,7 +326,7 @@ namespace ClimaPulse.Contracts;
 public sealed record CreateProfileRequest(
     string DisplayName,                                         // 1 to 50 chars
     TemperatureUnit PreferredTemperatureUnit = TemperatureUnit.Celsius,
-    string PreferredLocale = "id-ID");                          // up to 10 chars
+    string PreferredLocale = "en-US");                          // up to 10 chars
 
 /// <summary>Full replacement: send every field.</summary>
 public sealed record UpdateProfileRequest(
@@ -354,7 +357,7 @@ public sealed record EventQuery(
 | Field | Rule |
 |---|---|
 | `DisplayName` | 1 to 50 characters, not only spaces |
-| `PreferredLocale` | up to 10 characters, `id-ID` or `en-US` in v1 |
+| `PreferredLocale` | up to 10 characters, `en-US` only in v1 (SRD UI-5) |
 | `AlertThresholdZScore` | greater than 0 |
 | `Notes` | up to 500 characters |
 | `pageSize` | 1 to 100, default 20; `page` starts at 1 |
@@ -421,7 +424,7 @@ public sealed class UpstreamException(string message, int? cityId = null, Except
 
 Rules:
 1. The UI catches `ClimaPulseException` around every service call. One shared helper does this, so screens do not repeat the code.
-2. `Program.cs` sets `Application.ThreadException` (with `UnhandledExceptionMode.CatchException`) to log the error and show a message, so an unexpected bug on the UI thread does not close the app during the demo. `AppDomain.CurrentDomain.UnhandledException` only logs errors from other threads; the process still ends.
+2. `App.xaml.cs` handles `DispatcherUnhandledException` (log the error, show a message, set `e.Handled = true`), so an unexpected bug on the UI thread does not close the app during the demo. `AppDomain.CurrentDomain.UnhandledException` only logs errors from other threads; the process still ends.
 3. One city failing must not block the others. The UI refreshes cities one call each.
 4. Messages never contain SQL, stack traces or file paths.
 
@@ -446,23 +449,25 @@ Rules:
 
 ## 9. Behaviour both sides must agree on
 
-1. **Refresh is user-triggered in v1** (button or page open). `IDashboardService.GetAsync` reads stored data only and never calls Open-Meteo.
+1. **Refresh is user-triggered in v1** (button or page open). `IDashboardService.GetAsync` reads stored data only and never calls Open-Meteo. The last refresh per city is kept in memory (SRD OPEN-10), so after an app restart each city has `LastRefreshedAt = null` and an empty `Metrics` list until it is refreshed.
 2. **Baseline refresh is slow** (years of archive data). The UI shows the `IProgress<int>` value and disables the button. A second call for the same city while one runs throws `ConflictException`.
 3. **Update requests replace everything.** Send every field. `Notes = null` clears the note.
 4. **Removing a watched city keeps its events** in the ledger.
 5. **`Normal` is never stored.** Events and advisories only have Watch, Warning or Extreme.
-6. **Threading:** forms run on the UI thread. Event handlers are `async void` and `await` the service; never `.Result` or `.Wait()`. Services must not block it. Database work that can take more than a moment runs inside `Task.Run` in the backend, so the window stays responsive.
+6. **Threading:** windows and user controls run on the UI thread. Event handlers are `async void` and `await` the service; never `.Result` or `.Wait()`. Services must not block it. Database work that can take more than a moment runs inside `Task.Run` in the backend, so the window stays responsive.
 7. **Export file format** (the only place text formats matter):
 
 | Item | Format |
 |---|---|
-| Column or property names | camelCase, same names as `AnomalyEventDto` (`peakZScore`) |
+| Column or property names | camelCase, same names and order as `AnomalyEventDto` (`peakZScore`). The last column is `advisoryTitle`: empty in CSV and `null` in JSON when the event has no advisory |
 | Enum values | lowercase database text: `temperature_2m`, `precipitation`, `wind_speed_10m`, `watch`, `warning`, `extreme`, `active`, `closed` |
 | Time | UTC ISO 8601 with `Z`, for example `2026-09-18T05:00:00Z` |
 | Numbers | dot as decimal separator (`CultureInfo.InvariantCulture`), even on an Indonesian Windows |
 | CSV | header row, UTF-8, comma separator |
 
 The decimal rule matters: Indonesian Windows uses a comma for decimals, so `29.1.ToString()` would write `29,1` and break the CSV. Always pass `CultureInfo.InvariantCulture`.
+
+8. **Thresholds (SRD OPEN-1):** tiers use the global values (Watch 2.0, Warning 3.0, Extreme 4.0 on the absolute z-score), and an event closes below 1.75. `AlertThresholdZScore` never opens or closes an event; the UI only uses it to highlight a card.
 
 ---
 
@@ -471,7 +476,7 @@ The decimal rule matters: Indonesian Windows uses a comma for decimals, so `29.1
 | Layer | What | Effort |
 |---|---|---|
 | 1. The compiler | Both sides use the same interfaces and records. A rename, removed field or changed type breaks the build on the side that was not updated. | Free once Contracts exists |
-| 2. Fakes for the UI | `frontend/Fakes/FakeDashboardService.cs` and friends return fixed sample data (Yogyakarta, Jakarta, Tokyo from `seed.sql`). A switch in `Program.cs` creates fakes or real services. The frontend can build every screen before the backend is done. | Small, one class per interface |
+| 2. Fakes for the UI | `frontend/Fakes/FakeDashboardService.cs` and friends return fixed sample data (Yogyakarta, Jakarta, Tokyo from `seed.sql`). A switch in `App.xaml.cs` creates fakes or real services. The frontend can build every screen before the backend is done. | Small, one class per interface |
 | 3. Service tests | One xUnit test per interface method in the backend, against a separate test PostgreSQL database (for example `climapulse_test`). They check the DTO values and the exception types in this file. | Small per method |
 | 4. Review rule | Any change to `shared/ClimaPulse.Contracts` needs one frontend and one backend approval. | Free |
 
@@ -496,6 +501,10 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 | 2026-10-17 | v1 | HTTP contract (`openapi.yaml`) from SRD 4.2 and the schema |
 | 2026-10-22 | v2 | Desktop app: in-process C# interfaces, typed exceptions, profile list for the picker, progress on baseline refresh, `openapi.yaml` retired |
 | 2026-10-22 | v2.1 | Section 14: Open-Meteo endpoints, variables, units, error mapping, limits and requirement coverage. Proposed daily-vs-daily comparison |
+| 2026-11-24 | v2.2 | C2 decided: search throws `UpstreamException`, no stored-list fallback. Section 9: last refresh kept in memory, global thresholds (SRD OPEN-1, OPEN-10). No interface or DTO change |
+| 2026-11-25 | v2.3 | UI is WPF: composition root is `App.xaml.cs`, crash handler is `DispatcherUnhandledException`, project uses `UseWPF`. No interface or DTO change |
+| 2026-11-26 | v2.4 | New `IMonitoringService.GetRecentAsync` for the S4 "Last 14 days" chart (FR-20): one `MetricReadingDto` per day and metric, oldest first, `days` 1 to 31, `ObservedAt` is the local date at 00:00Z, no events and no advisories. Added to the interface, no DTO change. Section 14: forecast with `past_days` |
+| 2026-11-26 | v2.5 | `AnomalyEventDto` gets `string? AdvisoryTitle = null` as its last parameter, for the ledger drawer's "Advisory shown". It is the title of the exact advisory version stored on the event. Additive: existing constructor calls still compile. Exports (9.7) add an `advisoryTitle` column at the end |
 
 ---
 
@@ -503,7 +512,7 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 
 - [ ] The whole solution builds with no warnings on the merger's machine.
 - [ ] `dotnet test` passes.
-- [ ] No form or user control in `frontend/` uses anything outside `ClimaPulse.Contracts`.
+- [ ] No window or user control in `frontend/` uses anything outside `ClimaPulse.Contracts`.
 - [ ] No service returns a `ClimaPulse.Models` entity.
 - [ ] The app starts with real services (fakes switched off) and the demo path works: pick profile, add city, refresh, see badge, open ledger, export CSV.
 - [ ] The UI handles every exception type in section 7 and every `DataStatus` in section 6.4.
@@ -516,7 +525,7 @@ Layer 1 replaces the OpenAPI lint and the mock server of v1. Layers 2 and 3 are 
 | # | Question | Options and trade-offs | Recommendation |
 |---|---|---|---|
 | C1 | Errors as exceptions or as a `Result<T>` return value? | **Exceptions (this draft):** simple, the usual C# style, one catch helper in the UI. Easy to forget a catch. **Result<T>:** the compiler forces handling. More code on every call, and less common in course examples. | Exceptions |
-| C2 | Where does `ICityService.SearchAsync` get results? | **Open-Meteo geocoding API:** any city in the world, one more `WeatherService` call. Confirm its terms first. **Only the stored list:** no network, but users can only pick from cities the team seeded. | Geocoding, with the stored list as fallback when offline |
+| C2 | Where does `ICityService.SearchAsync` get results? | **Open-Meteo geocoding API:** any city in the world, one more `WeatherService` call. Confirm its terms first. **Only the stored list:** no network, but users can only pick from cities the team seeded. | **Decided 2026-11-24:** geocoding only. When Open-Meteo is down it throws `UpstreamException` (Figma S2 error state). No fallback to the stored list |
 | C3 | Where are the last used profile and the theme kept? | **A small JSON settings file in `%LOCALAPPDATA%\ClimaPulse`:** no schema change. **New columns on `UserProfile`:** schema change, needs team approval. | Settings file |
 
 Until the team answers, the draft follows the recommendation in each row.
@@ -574,7 +583,7 @@ Numbers in URLs use `CultureInfo.InvariantCulture`. On an Indonesian Windows, `-
 **Geocoding (FR-01)**
 ```
 GET https://geocoding-api.open-meteo.com/v1/search
-    ?name={query}&count=10&language={en|id}&format=json
+    ?name={query}&count=10&language=en&format=json
 ```
 - The docs say empty and one-letter searches return nothing, two letters match exact names, and three or more letters match by prefix. The service throws `ValidationException` for fewer than 2 characters, and the UI waits about 300 ms after typing stops before searching.
 - Optional `countryCode=ID` narrows results to one country.
@@ -590,6 +599,10 @@ GET https://api.open-meteo.com/v1/forecast
 ```
 - The docs say `timezone` is required when `daily` is requested. Use the city's own zone (stored in `City.timezone`), so "today" means the city's local day.
 - One call per city per refresh. All three metrics come back together.
+
+**Forecast, last 14 days (FR-20, S4 chart)**
+
+The same forecast URL with `&past_days=13` added returns the 13 days before today plus today, oldest first. `IMonitoringService.GetRecentAsync` makes one such call when S4 opens. The archive is not used here because it lags about 5 days behind.
 
 **Archive, 30 years of history (FR-07 to FR-09)**
 ```
@@ -656,7 +669,7 @@ On a shared campus network, the whole class shares one public IP address, so the
 
 ### 14.9 Test URLs (open in a browser, Yogyakarta)
 
-1. Geocoding: `https://geocoding-api.open-meteo.com/v1/search?name=Yogyakarta&count=3&language=id&format=json`
+1. Geocoding: `https://geocoding-api.open-meteo.com/v1/search?name=Yogyakarta&count=3&language=en&format=json`
 2. Forecast today: `https://api.open-meteo.com/v1/forecast?latitude=-7.7956&longitude=110.3695&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=Asia%2FJakarta&forecast_days=1`
 3. Archive, 3 days (**Confirm** `temperature_2m_mean`): `https://archive-api.open-meteo.com/v1/archive?latitude=-7.7956&longitude=110.3695&start_date=2024-09-01&end_date=2024-09-03&daily=temperature_2m_mean,precipitation_sum,wind_speed_10m_max&timezone=Asia%2FJakarta`
 
@@ -666,7 +679,7 @@ If URL 3 returns `"error": true`, use the max and min fallback from 14.3 and upd
 
 | SRD | Open-Meteo source | Notes |
 |---|---|---|
-| FR-01 search | Geocoding | Stored list as offline fallback (decision C2) |
+| FR-01 search | Geocoding | No offline fallback; throws `UpstreamException` (decision C2) |
 | FR-05 units | none | Always fetch metric units, convert in the UI |
 | FR-06, FR-18 live readings | Forecast `daily` + `current` | One call per city |
 | FR-07 history | Archive `daily` | Once per city, cached |

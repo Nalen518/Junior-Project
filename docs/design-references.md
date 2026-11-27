@@ -1,8 +1,8 @@
 # ClimaPulse: Design References
 
-Status: draft for team review. Last updated 2026-11-16 (UI is now Windows Forms).
+Status: draft for team review. Last updated 2026-11-25 (UI is now WPF).
 
-This file collects design references for the ClimaPulse desktop app (a Windows Forms app: one main window, screens as user controls), from the start screen to the screens inside the app, plus the project's GitHub Page. It also proposes a starter color system and page layouts so the team has something concrete to react to. Requirement IDs (FR-xx) point to `docs/SRD.md`.
+This file collects design references for the ClimaPulse desktop app (a WPF app: one main window, screens as user controls), from the start screen to the screens inside the app, plus the project's GitHub Page. It also proposes a starter color system and page layouts so the team has something concrete to react to. Requirement IDs (FR-xx) point to `docs/SRD.md`.
 
 **Link status.** *Verified* means the link appeared in a live web search on 2026-10-17. *Check* means it is a well-known page I could not open from my environment, so open it once before the team relies on it. Nobody on the team should copy a design. Take the idea, then draw your own version.
 
@@ -14,7 +14,7 @@ Pick one direction before anyone opens Figma. Mixed directions make a project lo
 
 | Direction | Looks like | Pros | Cons |
 |---|---|---|---|
-| **A. Data-first and calm** (recommended) | White or dark neutral canvas, big numbers, one accent color, color used only for severity | Matches the product idea (explain how unusual a reading is). Easy to keep accessible. Charts stay readable. Fast to build with standard Windows Forms controls. | Can look plain if the GitHub Page has no strong hero. |
+| **A. Data-first and calm** (recommended) | White or dark neutral canvas, big numbers, one accent color, color used only for severity | Matches the product idea (explain how unusual a reading is). Easy to keep accessible. Charts stay readable. Fast to build with standard WPF controls. | Can look plain if the GitHub Page has no strong hero. |
 | **B. Friendly weather app** | Gradients, large weather illustrations, rounded cards | Instantly familiar and attractive in screenshots. | Decoration competes with the risk badges. Gradients make contrast hard to control. Looks like a forecast app, not an anomaly tool. |
 | **C. Operations dashboard** | Dark theme, dense panels, map in the center | Feels serious and powerful. Good for many cities. | Hardest to build. Needs a map. Intimidating for first-time users. |
 
@@ -90,7 +90,7 @@ A desktop app has no landing page. The landing-page ideas below now serve the Gi
 | Reference | Take this idea | Avoid | Link | Status |
 |---|---|---|---|---|
 | Dashboard Design Patterns (IEEE VIS 2022 paper) | A research catalogue of real dashboard layouts, useful to name and justify the layout you pick. | Academic wording, skim the figures. | https://arxiv.org/abs/2205.00757 | Verified |
-| IBM Carbon data visualization | Rules for chart types, titles, legends and tooltips that work in dashboards. | Carbon's own component style, since we build with Windows Forms controls. | https://carbondesignsystem.com/data-visualization/chart-types and https://ibm.com/design/language/data-visualization/overview | Verified |
+| IBM Carbon data visualization | Rules for chart types, titles, legends and tooltips that work in dashboards. | Carbon's own component style, since we build with WPF controls. | https://carbondesignsystem.com/data-visualization/chart-types and https://ibm.com/design/language/data-visualization/overview | Verified |
 | Visa dynamic table pattern | A table pattern from a large design system. Read how it handles sort, filter and layout, then apply it to the ledger. | Its visual style. | https://design.visa.com/patterns/dynamic-table | Verified |
 | Windy / Zoom Earth / earth.nullschool | A full-screen map as a second view of the same data. | Making the map the only view. A list is faster to scan for 10 cities. | https://www.windy.com , https://zoom.earth , https://earth.nullschool.net | Check |
 | Climate Reanalyzer | Plain, fast anomaly maps and daily charts, a good model of "serious but readable". | Its utilitarian styling, which is too bare for the GitHub Page. | https://climatereanalyzer.org/wx/todays-weather | Verified |
@@ -194,7 +194,7 @@ Yellow, orange and red are hard to tell apart for people with red-green color bl
 
 ### 5.3 Typography and spacing
 
-- Typeface: Segoe UI, the default Windows Forms font on .NET. **Pro:** installed on every Windows PC, very readable, no font file to ship. **Con:** very common, so the look comes from layout and color, not the font. Inter is possible but must be bundled and loaded with `PrivateFontCollection`.
+- Typeface: Segoe UI, the default Windows font. **Pro:** installed on every Windows PC, very readable, no font file to ship. **Con:** very common, so the look comes from layout and color, not the font. Inter is possible but must be bundled as a font resource.
 - Sizes: 14 or 16 px body, 12 px labels, 28 to 40 px for the main number on a card.
 - Use tabular (fixed-width) digits for numbers so values do not jump when they update.
 - Spacing scale: 4, 8, 12, 16, 24, 32, 48 px.
@@ -261,17 +261,17 @@ In a narrow window (below about 900 px wide) the filter row collapses behind a "
 
 ## 7. Tools, kits and assets
 
-### Windows Forms building blocks
+### WPF building blocks
 
 Use the built-in controls first. No component library is planned (a package needs team approval, AGENTS.md).
 
 | Need | Control | Note |
 |---|---|---|
-| City cards on the dashboard | `FlowLayoutPanel` holding one small `UserControl` per city | Wraps when the window is resized (UI-1) |
-| Tables (watchlist, ledger, history) | `DataGridView` | Set `ReadOnly`, turn off row headers, use invariant number formats only in exports |
-| Layout | `TableLayoutPanel`, `Dock` and `Anchor` | Avoid fixed pixel positions so 125 and 150 percent scaling works |
-| Risk badge | `Label` with back colour **and** text (and an icon) | Colour is never the only signal (UI-3) |
-| Charts | none built in on .NET 10 | Table first; a chart library only after SRD OPEN-9 is decided |
+| City cards on the dashboard | `ItemsControl` with a `WrapPanel`, one `CityCard` user control per city | Wraps when the window is resized (UI-1) |
+| Tables (watchlist, ledger, history) | `DataGrid` | Set `IsReadOnly`, turn off row headers, use invariant number formats only in exports |
+| Layout | `Grid`, `StackPanel`, `DockPanel` | Avoid fixed pixel positions so 125 and 150 percent scaling works |
+| Risk badge | `TierBadge` user control: `Border` with tint **and** text (and an icon) | Colour is never the only signal (UI-3) |
+| Charts | a custom `UserControl` that draws with `DrawingContext` in `OnRender` | No library (SRD OPEN-9). Bell curve and 14-day chart as in Figma S4 |
 
 ### Icons and illustrations
 

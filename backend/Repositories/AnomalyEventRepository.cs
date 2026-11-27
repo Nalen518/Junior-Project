@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using ClimaPulse.Enums;
 using ClimaPulse.Models;
 using Npgsql;
@@ -17,13 +14,6 @@ public class AnomalyEventRepository : PostgresRepositoryBase, IRepository<Anomal
     private const string Columns =
         "event_id, city_id, baseline_id, advisory_id, metric_type, severity_tier, started_at, ended_at, " +
         "peak_at, peak_observed_value, peak_zscore, baseline_mean_snapshot, baseline_stddev_snapshot, status, created_at";
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    };
 
     public AnomalyEventRepository(string connectionString) : base(connectionString)
     {
@@ -66,6 +56,10 @@ public class AnomalyEventRepository : PostgresRepositoryBase, IRepository<Anomal
     public List<AnomalyEvent> Query(Func<AnomalyEvent, bool> filter) =>
         GetAll().Where(filter).ToList();
 
+    public AnomalyEvent? GetById(int eventId) =>
+        ReadList($"SELECT {Columns} FROM AnomalyEvent WHERE event_id = @id", Map,
+            cmd => AddParam(cmd, "@id", eventId)).FirstOrDefault();
+
     /// <summary>
     /// The open episode for a city and metric, or null. Used to decide whether a new
     /// reading continues an existing event or starts a new one.
@@ -96,41 +90,84 @@ public class AnomalyEventRepository : PostgresRepositoryBase, IRepository<Anomal
                 AddParam(cmd, "@ended", endedAtUtc.ToDb());
             }) > 0;
 
-    /// <summary>Writes every event to a CSV file, newest first.</summary>
-    public void ExportCsv(string filePath)
+    /// <summary>
+    /// One page of the ledger, newest StartedAt first (SRD FR-26). A null filter means
+    /// "no filter"; from and to bound StartedAt, inclusive. Page starts at 1; the service
+    /// checks page and pageSize.
+    /// </summary>
+    public List<AnomalyEvent> List(
+        int? cityId, MetricType? metric, SeverityTier? tier, EventStatus? status,
+        DateTime? fromUtc, DateTime? toUtc, int page, int pageSize)
     {
-        var lines = new List<string>
-        {
-            "event_id,city_id,baseline_id,advisory_id,metric_type,severity_tier,started_at,ended_at," +
-            "peak_at,peak_observed_value,peak_zscore,baseline_mean_snapshot,baseline_stddev_snapshot,status,created_at"
-        };
-
-        foreach (var e in GetAll())
-        {
-            lines.Add(string.Join(",",
-                e.Id.ToString(CultureInfo.InvariantCulture),
-                e.CityId.ToString(CultureInfo.InvariantCulture),
-                e.BaselineId.ToString(CultureInfo.InvariantCulture),
-                e.AdvisoryId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                e.MetricType.ToDb(),
-                e.SeverityTier.ToDb(),
-                e.StartedAt.ToDb(),
-                e.EndedAt?.ToDb() ?? string.Empty,
-                e.PeakAt.ToDb(),
-                e.PeakObservedValue.ToString(CultureInfo.InvariantCulture),
-                e.PeakZScore.ToString(CultureInfo.InvariantCulture),
-                e.BaselineMeanSnapshot.ToString(CultureInfo.InvariantCulture),
-                e.BaselineStdDevSnapshot.ToString(CultureInfo.InvariantCulture),
-                e.Status.ToDb(),
-                e.CreatedAt.ToDb()));
-        }
-
-        File.WriteAllLines(filePath, lines);
+        var (where, bind) = BuildFilter(cityId, metric, tier, status, fromUtc, toUtc);
+        return ReadList(
+            $"SELECT {Columns} FROM AnomalyEvent{where} ORDER BY started_at DESC, event_id DESC LIMIT @limit OFFSET @offset",
+            Map,
+            cmd =>
+            {
+                bind(cmd);
+                AddParam(cmd, "@limit", pageSize);
+                AddParam(cmd, "@offset", (page - 1) * pageSize);
+            });
     }
 
-    /// <summary>Writes every event to a JSON file, newest first.</summary>
-    public void ExportJson(string filePath) =>
-        File.WriteAllText(filePath, JsonSerializer.Serialize(GetAll(), JsonOptions));
+    /// <summary>Number of events matching the same filter as <see cref="List"/>, for paging.</summary>
+    public int Count(
+        int? cityId, MetricType? metric, SeverityTier? tier, EventStatus? status,
+        DateTime? fromUtc, DateTime? toUtc)
+    {
+        var (where, bind) = BuildFilter(cityId, metric, tier, status, fromUtc, toUtc);
+        return (int)ReadList($"SELECT COUNT(*) FROM AnomalyEvent{where}", r => r.GetInt64(0), bind)[0];
+    }
+
+    // Only non-null filters become SQL, so Npgsql never sees an untyped null parameter.
+    // started_at is ISO 8601 UTC text, so text comparison orders it correctly.
+    private static (string Where, Action<NpgsqlCommand> Bind) BuildFilter(
+        int? cityId, MetricType? metric, SeverityTier? tier, EventStatus? status,
+        DateTime? fromUtc, DateTime? toUtc)
+    {
+        var clauses = new List<string>();
+        var binds = new List<Action<NpgsqlCommand>>();
+
+        void Add(string clause, string name, object value)
+        {
+            clauses.Add(clause);
+            binds.Add(cmd => AddParam(cmd, name, value));
+        }
+
+        if (cityId is { } c) Add("city_id = @city", "@city", c);
+        if (metric is { } m) Add("metric_type = @metric", "@metric", m.ToDb());
+        if (tier is { } t) Add("severity_tier = @tier", "@tier", t.ToDb());
+        if (status is { } s) Add("status = @status", "@status", s.ToDb());
+        if (fromUtc is { } f) Add("started_at >= @from", "@from", f.ToDb());
+        if (toUtc is { } to) Add("started_at <= @to", "@to", to.ToDb());
+
+        var where = clauses.Count == 0 ? string.Empty : " WHERE " + string.Join(" AND ", clauses);
+        return (where, cmd => binds.ForEach(b => b(cmd)));
+    }
+
+    /// <summary>
+    /// Records a worse reading on an active event (SRD FR-23). The caller decides the reading
+    /// is worse; the SQL keeps the higher tier, so an event's tier never goes down.
+    /// Returns false if the event does not exist or is already closed.
+    /// </summary>
+    public bool UpdatePeak(int eventId, SeverityTier tier, DateTime peakAtUtc, double peakValue, double peakZScore) =>
+        ExecuteNonQuery(
+            @"UPDATE AnomalyEvent
+              SET peak_at = @peakAt, peak_observed_value = @peakValue, peak_zscore = @peakZ,
+                  severity_tier = CASE
+                      WHEN array_position(ARRAY['watch', 'warning', 'extreme'], @tier)
+                         > array_position(ARRAY['watch', 'warning', 'extreme'], severity_tier)
+                      THEN @tier ELSE severity_tier END
+              WHERE event_id = @id AND status = 'active'",
+            cmd =>
+            {
+                AddParam(cmd, "@id", eventId);
+                AddParam(cmd, "@tier", tier.ToDb());
+                AddParam(cmd, "@peakAt", peakAtUtc.ToDb());
+                AddParam(cmd, "@peakValue", peakValue);
+                AddParam(cmd, "@peakZ", peakZScore);
+            }) > 0;
 
     private static AnomalyEvent Map(NpgsqlDataReader r) => new()
     {

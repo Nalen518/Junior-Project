@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Version | 0.4 draft |
-| Date | 2026-11-16 |
+| Version | 0.4.6 draft |
+| Date | 2026-11-26 |
 | Project | ClimaPulse, Junior Project, group "Mendoan", UGM DTETI |
 | Status | For team review. Items marked **OPEN** need a team decision. |
 | Based on | Module 1 project brief and grading criteria, README, Modul 3 class diagram, Modul 4 database (`backend/Database/schema.sql`), design decisions recorded in the project docs |
@@ -29,7 +29,9 @@ The system:
 Out of scope for version 1 are listed in section 6.
 
 ### 1.3 Platform note
-Module 1 requires the application to be written in C# as a desktop application (Windows Store, Windows Forms or WPF). ClimaPulse is a **Windows Forms application**: the main window is a `Form`, each screen is a `UserControl` or dialog form, and everything runs on .NET inside one process on the user's PC. Blazor (including Blazor Hybrid) and WPF are not allowed for the UI (team decision, 2026-11-16).
+Module 1 requires the application to be written in C# as a desktop application (Windows Store, Windows Forms or WPF). ClimaPulse is a **WPF application**: the main window is a `Window`, each screen is a `UserControl` written in XAML, dialogs are small `Window`s opened with `ShowDialog()`, and everything runs on .NET inside one process on the user's PC. Blazor (including Blazor Hybrid) and Razor are not allowed for the UI.
+
+Decision history: Windows Forms was chosen on 2026-11-16. On 2026-11-25 the team accepted WPF instead (decided by Nalen, project manager), because Module 1 allows WPF and the screens were already built in WPF against the same contract. The backend, the contract and the database did not change.
 
 There is no web server and no HTTP API between the screens and the logic. The screens call C# service interfaces directly (section 4.2). Version 0.1 of this SRD described a web app with an HTTP API. That design is replaced.
 
@@ -65,7 +67,7 @@ One desktop program built from three projects in one repository (frontend, backe
 
 ```mermaid
 flowchart LR
-    U[User] --> F["Desktop UI: Windows Forms (forms + user controls)"]
+    U[User] --> F["Desktop UI: WPF (windows + user controls)"]
     F -->|C# interfaces in ClimaPulse.Contracts| A[Backend services]
     A --> E[Anomaly engine and strategies]
     E --> R[Repositories]
@@ -86,9 +88,9 @@ flowchart LR
 Windows 10 or Windows 11, 64-bit. .NET 10 (the demo build is self-contained, so the runtime ships with it). A PostgreSQL server on the user's PC with a `climapulse` database. Internet access to Open-Meteo for live data and first-time history downloads.
 
 ### 2.4 Constraints
-- C-1: C# on .NET 10 LTS. Windows Forms for the desktop UI (no Blazor, no WPF). PostgreSQL through `Npgsql`. Required by Module 1: C# desktop application.
+- C-1: C# on .NET 10 LTS. WPF for the desktop UI (no Blazor, no Razor). PostgreSQL through `Npgsql`. Required by Module 1: C# desktop application.
 - C-2: Open-Meteo is the only weather data source. Its free tier is for non-commercial use with request limits (confirm the exact numbers on the terms page).
-- C-3: Layering: forms and user controls depend only on `ClimaPulse.Contracts` interfaces, received through their constructors. The UI never accesses repositories or the database, and only `WeatherService` calls Open-Meteo.
+- C-3: Layering: windows and user controls depend only on `ClimaPulse.Contracts` interfaces, received through their constructors. The UI never accesses repositories or the database, and only `WeatherService` calls Open-Meteo.
 - C-4: All timestamps are stored in UTC as ISO 8601 text.
 - C-5: The project is a university group project with a fixed schedule and four members, so scope is prioritized (section 3). Module 1 states a maximum of three members per group, so the group size must be confirmed with the teaching assistant (OPEN-8).
 - C-6: Work follows the Git rules in `docs/github-ai-agent-rules.md`.
@@ -97,7 +99,7 @@ Windows 10 or Windows 11, 64-bit. .NET 10 (the demo build is self-contained, so 
 ### 2.5 Assumptions and dependencies
 - A-1: Open-Meteo stays available and keeps its variable names (`temperature_2m`, `precipitation`, `wind_speed_10m`).
 - A-2: About 30 years of archive data exist for every city the user can add.
-- A-3: Sample advisories are written by the team in Indonesian (`id-ID`) and English, loaded through `seed.sql`.
+- A-3: Sample advisories are written by the team in English (`en-US`) and loaded through `seed.sql`. The `locale` column stays so Indonesian can be added later.
 - A-4: The app is installed per PC. One person uses it at a time, and several local profiles can share one PC (demo scale, not production scale).
 
 ---
@@ -114,7 +116,7 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 | FR-02 | The user can add a city to their watchlist. | Must | After adding, the city appears on the dashboard. Adding the same city twice is rejected with a clear message (unique profile and city). |
 | FR-03 | The user can remove a city from the watchlist. | Must | The city disappears from the dashboard. Its observations and baselines remain for other users. |
 | FR-04 | The user can set an alert threshold (z-score) and a note per watched city. | Should | Default threshold is 2.0. Values of 0 or less are rejected. Notes are at most 500 characters. |
-| FR-05 | The user can set display preferences: temperature unit (C or F) and language (`id-ID` or `en-US`). | Should | Changing the unit converts every temperature shown. Data stored stays in Celsius. |
+| FR-05 | The user can set the temperature unit (C or F). Language choice is out of scope for v1 (UI-5). | Should | Changing the unit converts every temperature shown. Data stored stays in Celsius. |
 
 ### 3.2 Data ingestion and baselines
 
@@ -130,12 +132,12 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 | ID | Requirement | Priority | Acceptance criteria |
 |---|---|---|---|
 | FR-10 | The system computes the z-score of a live reading against the matching baseline. | Must | For mean 28.0, standard deviation 1.5 and reading 33.0, the z-score is about 3.33. A standard deviation of 0 does not crash the system and yields no anomaly. |
-| FR-11 | The system assigns a severity tier from the z-score. | Must | Thresholds are configurable in one place. Proposed defaults are in OPEN-1. |
+| FR-11 | The system assigns a severity tier from the z-score. | Must | Thresholds are configurable in one place. Values are in OPEN-1. |
 | FR-12 | Temperature anomalies are supported first. | Must | The temperature strategy is complete and tested. |
 | FR-13 | Precipitation anomalies are supported. | Should | Precipitation strategy complete and tested, with the known limits of rain data documented (skewed distribution, many zero values). |
 | FR-14 | Wind speed anomalies are supported. | Could | Wind strategy added using the same strategy interface. |
-| FR-15 | The system finds the "climate twin" city whose normal climate matches today's anomaly. | Could | `ClimateTwinEngine` returns a city from the candidate list and the UI shows it. |
-| FR-16 | The system estimates impact values (cooling degree days, wet-bulb temperature). | Could | `ImpactEstimatorService` formulas are verified against a known example. |
+| FR-15 | The system finds the "climate twin" city whose normal climate matches today's anomaly. | Could (future work, not in v1) | `ClimateTwinEngine` returns a city from the candidate list and the UI shows it. |
+| FR-16 | The system estimates impact values (cooling degree days, wet-bulb temperature). | Could (future work, not in v1) | `ImpactEstimatorService` formulas are verified against a known example. |
 
 ### 3.4 Dashboard and advisories
 
@@ -143,9 +145,9 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 |---|---|---|---|
 | FR-17 | The dashboard lists all watched cities with a risk badge (Normal, Watch, Warning, Extreme) per metric. | Must | The badge colour and text both show the tier, so colour is not the only signal. |
 | FR-18 | The user can refresh all readings from the dashboard. | Must | A loading state shows while fetching and a time of last update is displayed. |
-| FR-19 | For an active anomaly the user sees the matching advisory (health and climate) in their language. | Must | The advisory with the highest `version` whose `effective_from` is not in the future is shown. If none exists in the user's language, the `id-ID` advisory is shown. |
+| FR-19 | For an active anomaly the user sees the matching advisory (health and climate) . | Must | The advisory with the highest `version` whose `effective_from` is not in the future is shown, one per category (health, climate). v1 uses English (`en-US`) advisories only. |
 | FR-20 | The user can open a city detail view showing current value, baseline, z-score and recent history. | Should | The view shows the reading, baseline mean and standard deviation, and z-score for each metric. |
-| FR-21 | The dashboard supports light and dark themes. | Could | Theme choice persists after the app is closed (local settings file). Windows Forms dark mode (`Application.SetColorMode`) was experimental in .NET 9; check its status in .NET 10, or set colours by hand. |
+| FR-21 | The dashboard supports light and dark themes. | Won't (v1) | Decided 2026-11-21: light theme only in v1. |
 
 ### 3.5 Historical Anomaly Ledger
 
@@ -171,11 +173,11 @@ Priority uses MoSCoW: **Must** (needed for the demo), **Should** (important), **
 ## 4. External interface requirements
 
 ### 4.1 User interface
-- UI-1: The window works from 1024 x 640 pixels up to full HD and adapts when resized.
+- UI-1: The window works from 1024 x 640 pixels up to full HD and adapts when resized. Checked in the built app; there is no separate mockup at 1024 x 640.
 - UI-2: Dashboard first. A user reaches the watchlist, ledger and settings in at most two clicks.
 - UI-3: Every risk badge pairs colour with text. Interactive elements are keyboard reachable and have visible focus.
 - UI-4: Loading, empty and error states are shown for every data view.
-- UI-5: Indonesian is the default language, English is the second.
+- UI-5: The user interface is in English only for v1 (decided 2026-11-21). All user-facing text still lives in `.resx` files (NFR-15), so Indonesian can be added later.
 
 ### 4.2 Internal interface between frontend and backend
 
@@ -228,7 +230,7 @@ Targets are starting points. The team should confirm them after measuring.
 | NFR-12 | Maintainability | Layers stay separated (C-3). New metrics are added by adding a strategy, not by editing existing ones. |
 | NFR-13 | Testability | The anomaly engine and strategies have unit tests that need no network or database. |
 | NFR-14 | Portability | The app runs on Windows 10 or later, 64-bit. The Contracts and Backend projects and their tests build on any OS with the .NET 10 SDK. |
-| NFR-15 | Localization | User-facing text lives in `.resx` resource files, not in form code. |
+| NFR-15 | Localization | User-facing text lives in `.resx` resource files, not in window code (XAML or code-behind). |
 | NFR-16 | Deployment | The demo build is a self-contained publish that starts with a double-click on a PC without the .NET SDK. A release zip and run instructions are on GitHub (Module 1: demo access information). |
 | NFR-17 | Reliability | The window stays responsive during refresh and baseline downloads, and an unexpected error in one screen does not close the app. |
 
@@ -243,6 +245,8 @@ Targets are starting points. The team should confirm them after measuring.
 - Real-time streaming. Readings are fetched on refresh or on a timer.
 - Advisory editing screen (advisories come from `seed.sql`).
 - Commercial use of Open-Meteo data.
+
+Future work: the two "Could" requirements FR-15 (climate twin) and FR-16 (impact estimates: cooling degree days, wet-bulb temperature) are not built in v1. `ClimateTwinEngine.FindTwin` and the two `ImpactEstimatorService` methods are placeholders that throw `NotImplementedException`; no service or screen calls them, so the app never reaches them. They stay in the code and class diagrams as the planned extension points. Wet-bulb temperature also needs relative humidity, which v1 does not fetch (`docs/api-contract.md` 14.8).
 
 ---
 
@@ -273,17 +277,28 @@ Retention: observations and baselines are kept as long as the city exists. Ledge
 | Ledger (FR-22 to FR-28) | AnomalyEvent | `IEventLedgerService`, `AnomalyEventRepository` |
 | Users (FR-29) | UserProfile | `IProfileService`, `UserProfileRepository` |
 
-Known gaps: `AnomalyDetectionService.AnalyzeCityAsync` is not implemented yet. `AssignTier`, `TemperatureStrategy` and `PrecipitationStrategy` are implemented but not yet compiled or unit tested. `WindStrategy` does not exist yet (needed for FR-14). The `ClimaPulse.Contracts` project and the service classes that implement its interfaces do not exist yet. `frontend/Components/Dashboard.razor` is left over from the Blazor design and must be replaced by a Windows Forms `DashboardView` that uses DTOs. No `.csproj` or `.sln` exists yet.
+Known gaps (2026-11-26): the WPF screens are wired to every service, including the S4 14-day chart (PR #28). Limitations of v1:
+- NFR-15 is not met: screen text is still in XAML and code-behind, not `.resx` files. Moving it is planned together with the Indonesian translation (UI-5).
+- FR-04: the default alert threshold for new cities is a fixed 2.0. Settings shows it but cannot change it; each city's threshold is changed on its City detail page.
 
 ---
 
 ## 9. Open questions (team decisions needed)
 
-**OPEN-1: Tier thresholds and hysteresis.**
-Proposal: Normal below 2.0, Watch from 2.0, Warning from 3.0, Extreme from 4.0 (absolute z-score), and an event closes when the z-score falls below the opening threshold minus 0.25.
-- Pros: easy to explain, 2 sigma is a common "unusual" level, per-city threshold already exists in the schema.
-- Cons: weather is not perfectly normal, so rain in particular will not follow these numbers. Cold anomalies and hot anomalies need the sign decided (the schema stores only the tier and the z-score, so the sign of the z-score tells the direction).
-- Alternative: percentile-based tiers. More accurate for skewed data, more work and harder to explain.
+**OPEN-1: Tier thresholds and hysteresis. DECIDED 2026-11-24.**
+Normal below 2.0, Watch from 2.0, Warning from 3.0, Extreme from 4.0, all on the absolute z-score. An event closes when the absolute z-score falls below 2.0 - 0.25 = 1.75.
+- Events open at this global Watch threshold. The per-profile `alert_threshold_zscore` (FR-04) only decides which cards are highlighted for that user, because events belong to a city and metric, not to a profile.
+- The sign of the stored z-score tells the direction (hot or cold, wet or dry).
+- Why: easy to explain, and 2 sigma is a common "unusual" level. Accepted cost: rain is skewed, so its tiers are rough (FR-13). Percentile-based tiers were rejected as more work and harder to explain.
+
+**OPEN-10: Backend details. DECIDED 2026-11-24.**
+- Today's reading: the last refresh result per city is kept in memory by the backend. No schema change. After a restart the dashboard shows each city as not refreshed until the user presses Refresh (FR-17, FR-18).
+- Advisory on an event: `AnomalyEvent.advisory_id` stores the health advisory. The climate advisory is still shown on screen (FR-19).
+- Baselines: sample standard deviation (n - 1) of daily values, period 1995 to 2024 (FR-08).
+- Standard deviation of 0: the reading gets the status "zero variance" and no tier, never a fake Normal (FR-10).
+- Duplicate cities: adding a search result returns the stored city with the same Open-Meteo id, otherwise the same name and coordinates rounded to 2 decimals. No unique key is added to `City` (FR-02).
+- `UserProfile.is_active` is not used in v1. The column keeps its default of 1.
+- City search when Open-Meteo is down shows an error. There is no fallback to the stored city list (FR-01, contract decision C2).
 
 **OPEN-2: Which metrics ship first.**
 Recommendation: temperature as Must, precipitation as Should, wind as Could (earlier design notes say rain and flash drought are much harder than temperature).
@@ -298,10 +313,10 @@ On start the app shows a profile picker (FR-29). There are no passwords.
 Still to decide: which laptop runs the final demo, and whether the demo starts from an empty database or from `seed.sql` plus pre-downloaded baselines (recommended, so the demo does not depend on a slow first download).
 
 **OPEN-5: Scheduling.**
-Are live readings fetched only when the user presses refresh, or also by a background timer? A timer (`System.Windows.Forms.Timer`) is simple to add but needs more care with Open-Meteo limits.
+Are live readings fetched only when the user presses refresh, or also by a background timer? A timer (`System.Windows.Threading.DispatcherTimer`) is simple to add but needs more care with Open-Meteo limits.
 
-**OPEN-6: Languages.**
-Indonesian and English both, or Indonesian only? Doing both doubles advisory writing.
+**OPEN-6: Languages. DECIDED 2026-11-21: English only for v1.**
+Interface and advisories are in English. Indonesian is a later version; the `locale` column and `.resx` files keep that possible.
 
 **OPEN-7: Course constraints. PARTLY ANSWERED by Module 1.**
 Known: C# desktop app, Git on GitHub, a README with group members, a GitHub Page from the `docs` folder on `main`, demo access information, brief usage documentation, and the grading weights in C-7. Still unknown: whether later modules require specific diagrams, test evidence or a fixed SRD template.
@@ -309,8 +324,8 @@ Known: C# desktop app, Git on GitHub, a README with group members, a GitHub Page
 **OPEN-8: Group size.**
 Module 1 says groups have at most three members, but the group has four. Confirm with the teaching assistant that four is accepted and how roles (software architect, backend developer, frontend developer) are split across four people.
 
-**OPEN-9: Charts.**
-.NET 10 Windows Forms has no built-in chart control (the old `System.Windows.Forms.DataVisualization` is .NET Framework only). FR-20 history can start as a `DataGridView` table. If a chart is wanted, pick one library (for example ScottPlot.WinForms or LiveCharts2) and get team approval before adding the package.
+**OPEN-9: Charts. DECIDED 2026-11-21: drawn by hand, no library.**
+WPF on .NET 10 has no built-in chart control. The bell curve (S4 "Today vs the 30-year normal") and the 14-day chart (S4 "Last 14 days") are drawn by hand in a `UserControl` that overrides `OnRender` and draws with `DrawingContext`. No chart package is added. Each chart also shows a one-sentence text summary (NFR-11).
 
 ---
 
@@ -323,4 +338,9 @@ Module 1 says groups have at most three members, but the group has four. Confirm
 | 0.2 | 2026-10-22 | Platform changed to a WPF desktop app with Blazor Hybrid (Module 1). HTTP API replaced by in-process interfaces. No login, profile picker. Grading criteria added. OPEN-3 and OPEN-4 decided, OPEN-8 added |
 | 0.3 | 2026-11-16 | Database changed from SQLite to PostgreSQL (Npgsql). Connection string from `CLIMAPULSE_DB_CONNECTION` |
 | 0.4 | 2026-11-16 | UI changed from WPF with Blazor Hybrid to Windows Forms (Blazor and WPF not allowed). WebView2 requirement removed. OPEN-9 (charts) added |
+| 0.4.3 | 2026-11-21 | English only for v1 (UI-5, FR-05, FR-19, A-3, OPEN-6). Dark theme moved to Won't (FR-21). UI-1 checked in the built app, no 1024 x 640 mockup |
+| 0.4.4 | 2026-11-24 | OPEN-1 decided (tiers 2, 3, 4, close below 1.75, global threshold opens events). OPEN-10 added and decided (backend details) |
+| 0.4.5 | 2026-11-25 | UI changed from Windows Forms to WPF (1.3, C-1, C-3, NFR-15, OPEN-5, OPEN-9). Known gaps updated |
+| 0.4.6 | 2026-11-26 | Known gaps updated: screens wired; NFR-15 and the fixed default threshold (FR-04) stated as v1 limitations |
+| 0.4.2 | 2026-11-21 | OPEN-9 decided: charts drawn by hand with `Graphics`, no chart library. Figma Set A (sidebar) is the final design |
 | 0.4.1 | 2026-11-16 | Advisory uniqueness now includes category, so health and climate advisories can share a version number |

@@ -10,7 +10,7 @@ public class UserProfile
     public string PreferredTemperatureUnit { get; set; } = "C";
 
     /// <summary>BCP-47 tag such as id-ID or en-US.</summary>
-    public string PreferredLocale { get; set; } = "id-ID";
+    public string PreferredLocale { get; set; } = "en-US";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
