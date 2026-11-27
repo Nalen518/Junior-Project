@@ -52,10 +52,8 @@ There is no web server and no HTTP API between the screens and the logic. The sc
 ### 1.5 References
 - `README.md`, `docs/class-diagram/` (Module 3)
 - `backend/Database/schema.sql`, `schema.dbml`, `seed.sql` (Module 4)
-- `docs/references-desktop-architecture.md`
 - `docs/api-contract.md` (the frontend and backend contract)
 - Module 1, Junior Project brief and assessment criteria
-- `docs/github-ai-agent-rules.md`
 - Open-Meteo documentation: https://open-meteo.com/en/docs (check before relying on limits)
 
 ---
@@ -93,7 +91,7 @@ Windows 10 or Windows 11, 64-bit. .NET 10 (the demo build is self-contained, so 
 - C-3: Layering: windows and user controls depend only on `ClimaPulse.Contracts` interfaces, received through their constructors. The UI never accesses repositories or the database, and only `WeatherService` calls Open-Meteo.
 - C-4: All timestamps are stored in UTC as ISO 8601 text.
 - C-5: The project is a university group project with a fixed schedule and four members, so scope is prioritized (section 3). Module 1 states a maximum of three members per group, so the group size must be confirmed with the teaching assistant (OPEN-8).
-- C-6: Work follows the Git rules in `docs/github-ai-agent-rules.md`.
+- C-6: Work follows the Git rules in `AGENTS.md`.
 - C-7: Grading (Module 1). Process 40 percent: teamwork, engineering design principles, alignment of deliverables, quizzes (10 percent each). Product 60 percent: documentation on GitHub with Git, demo access information and brief usage documentation (20), demo runs without errors (20), OOP design quality, originality and usefulness (20). Scope and priorities in this document follow these weights.
 
 ### 2.5 Assumptions and dependencies
