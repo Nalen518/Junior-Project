@@ -22,7 +22,7 @@ with health and climate advice for that tier. Every anomaly episode is kept in a
 
 ## Screenshots
 
-From the app with live Open-Meteo data (27 Nov 2026). Website: [rdiit6.github.io/Junior-Project](https://rdiit6.github.io/Junior-Project/).
+From the app with live Open-Meteo data (27 Nov 2026). Website: [nalen518.github.io/Junior-Project](https://nalen518.github.io/Junior-Project/).
 
 | Dashboard: each city against its own normal | City detail: today vs the 30-year normal, advice, last 14 days |
 | --- | --- |
@@ -45,7 +45,7 @@ From the app with live Open-Meteo data (27 Nov 2026). Website: [rdiit6.github.io
    setx CLIMAPULSE_DB_CONNECTION "Host=localhost;Port=5432;Database=climapulse;Username=postgres;Password=YOUR_PASSWORD"
    ```
 3. Get the app:
-   - **Demo build:** download `ClimaPulse-win-x64.zip` from [GitHub Releases](https://github.com/Rdiit6/Junior-Project/releases), unzip it and double-click `ClimaPulse.Desktop.exe`. It is self-contained, so no .NET install is needed.
+   - **Demo build:** download `ClimaPulse-win-x64.zip` from [GitHub Releases](https://github.com/Nalen518/Junior-Project/releases), unzip it and double-click `ClimaPulse.Desktop.exe`. It is self-contained, so no .NET install is needed.
    - **From source:** see [Run it locally](#run-it-locally).
 4. Start the app once (it creates the tables), close it, and load the sample data and advice texts:
    ```powershell
@@ -134,7 +134,7 @@ An anomaly episode opens at |z| ≥ 2.0 and closes when |z| drops below 1.75, so
 | **Process 3.** Deliverables match expected outcomes | 10% | [What you can do](#what-you-can-do) and [Where it is in the code](#where-it-is-in-the-code), each tied to a requirement in the [SRD](docs/SRD.md) |
 | **Process 4.** Quizzes and understanding | 10% | Individual, in class |
 | **Product 1a.** Documented on GitHub, uses Git | 20% | This README, `docs/`, and the GitHub history of branches and pull requests |
-| **Product 1b.** Access information for a demo | (in 1) | [Try it (for lecturers)](#try-it-for-lecturers) and [GitHub Releases](https://github.com/Rdiit6/Junior-Project/releases) |
+| **Product 1b.** Access information for a demo | (in 1) | [Try it (for lecturers)](#try-it-for-lecturers) and [GitHub Releases](https://github.com/Nalen518/Junior-Project/releases) |
 | **Product 1c.** Brief usage documentation | (in 1) | The walkthrough in [Try it](#try-it-for-lecturers), and [Run it locally](#run-it-locally) |
 | **Product 2.** Demo runs without errors | 20% | CI builds and tests every change; errors for one city never stop the others; a crash handler keeps the app open and logs to `%LOCALAPPDATA%\ClimaPulse\logs` |
 | **Product 3.** OOP design, originality, usefulness | 20% | OOP: `IAnomalyStrategy` with one strategy per metric (polymorphism), repositories extending `PostgresRepositoryBase` (inheritance), screens using only `shared/ClimaPulse.Contracts` interfaces (abstraction). Originality and usefulness: [Who it is for](#who-it-is-for) |
