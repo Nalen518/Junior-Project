@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using ClimaPulse.Contracts;
+using ClimaPulse.Desktop.Formatting;
 using ClimaPulse.Enums;
 using Microsoft.Win32;
 
@@ -138,8 +139,8 @@ public partial class LedgerView : UserControl
         SelectedText(MetricFilter) switch
         {
             "Temperature" => MetricType.Temperature,
-            "Precipitation" => MetricType.Precipitation,
-            "Wind speed" => MetricType.WindSpeed,
+            "Rain" => MetricType.Precipitation,
+            "Wind" => MetricType.WindSpeed,
             _ => null,
         };
 
@@ -291,7 +292,7 @@ public partial class LedgerView : UserControl
         new(
             item.Tier.ToString(),
             item.CityName,
-            item.Metric.ToString(),
+            MetricDisplay.Name(item.Metric),
             item.StartedAt.ToLocalTime().ToString("d MMM, HH:mm", CultureInfo.InvariantCulture),
             item.EndedAt?.ToLocalTime().ToString("d MMM, HH:mm", CultureInfo.InvariantCulture)
                 ?? "Active",

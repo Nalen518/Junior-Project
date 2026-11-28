@@ -293,12 +293,7 @@ public partial class DashboardView : UserControl
     private static MetricReadingDto? Find(DashboardCityDto city, MetricType metric) =>
         city.Metrics.FirstOrDefault(reading => reading.Metric == metric);
 
-    private static string FormatLocation(CityDto city)
-    {
-        return string.IsNullOrWhiteSpace(city.AdminRegion)
-            ? city.CountryCode
-            : $"{city.AdminRegion}, {city.CountryCode}";
-    }
+    private static string FormatLocation(CityDto city) => CityFormat.Place(city.AdminRegion, city.CountryCode);
 
     private void CityCard_Click(object? sender, EventArgs e)
     {
