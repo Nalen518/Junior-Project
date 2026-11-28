@@ -37,36 +37,48 @@ public class HistoricalObservationRepository : PostgresRepositoryBase, IReposito
     /// <summary>
     /// Inserts many readings in one transaction, ignoring any that already exist, so a
     /// re-fetch is safe. Returns how many new rows were stored. Ids are not set on items.
+    /// The rows go in with one binary COPY into a temporary table and one INSERT from it,
+    /// so 30 years of history costs a few round trips instead of one per row: on a hosted
+    /// database about 90 ms per round trip made the old row-by-row insert take ~50 minutes.
     /// </summary>
     public int AddRange(IEnumerable<HistoricalObservation> items)
     {
         using var connection = OpenConnection();
         using var transaction = connection.BeginTransaction();
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText =
-            @"INSERT INTO HistoricalObservation (city_id, metric_type, observed_at, value, source, fetched_at)
-              VALUES (@city, @metric, @observed, @value, @source, @fetched)
-              ON CONFLICT (city_id, metric_type, observed_at) DO NOTHING";
 
-        var city = command.Parameters.AddWithValue("@city", 0);
-        var metric = command.Parameters.AddWithValue("@metric", string.Empty);
-        var observed = command.Parameters.AddWithValue("@observed", string.Empty);
-        var value = command.Parameters.AddWithValue("@value", 0.0);
-        var source = command.Parameters.AddWithValue("@source", string.Empty);
-        var fetched = command.Parameters.AddWithValue("@fetched", string.Empty);
-
-        var inserted = 0;
-        foreach (var item in items)
+        using (var create = connection.CreateCommand())
         {
-            city.Value = item.CityId;
-            metric.Value = item.MetricType.ToDb();
-            observed.Value = item.ObservedAt.ToDb();
-            value.Value = item.Value;
-            source.Value = item.Source;
-            fetched.Value = item.FetchedAt.ToDb();
-            inserted += command.ExecuteNonQuery();
+            create.CommandText =
+                @"CREATE TEMP TABLE observation_import (
+                      city_id INTEGER, metric_type TEXT, observed_at TEXT,
+                      value DOUBLE PRECISION, source TEXT, fetched_at TEXT
+                  ) ON COMMIT DROP";
+            create.ExecuteNonQuery();
         }
+
+        using (var import = connection.BeginBinaryImport(
+                   "COPY observation_import (city_id, metric_type, observed_at, value, source, fetched_at) FROM STDIN (FORMAT BINARY)"))
+        {
+            foreach (var item in items)
+            {
+                import.StartRow();
+                import.Write(item.CityId);
+                import.Write(item.MetricType.ToDb());
+                import.Write(item.ObservedAt.ToDb());
+                import.Write(item.Value);
+                import.Write(item.Source);
+                import.Write(item.FetchedAt.ToDb());
+            }
+            import.Complete();
+        }
+
+        // ON CONFLICT also skips duplicates inside the batch itself, as the old loop did.
+        using var insert = connection.CreateCommand();
+        insert.CommandText =
+            @"INSERT INTO HistoricalObservation (city_id, metric_type, observed_at, value, source, fetched_at)
+              SELECT city_id, metric_type, observed_at, value, source, fetched_at FROM observation_import
+              ON CONFLICT (city_id, metric_type, observed_at) DO NOTHING";
+        var inserted = insert.ExecuteNonQuery();
 
         transaction.Commit();
         return inserted;

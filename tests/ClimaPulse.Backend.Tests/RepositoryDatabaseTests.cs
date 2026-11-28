@@ -12,10 +12,12 @@ public class RepositoryDatabaseTests
     private readonly CityRepository _cities;
     private readonly BaselineRepository _baselines;
     private readonly AnomalyEventRepository _events;
+    private readonly HistoricalObservationRepository _history;
 
     public RepositoryDatabaseTests(TestDatabase db)
     {
         db.Reset();
+        _history = new HistoricalObservationRepository(db.ConnectionString);
         _cities = new CityRepository(db.ConnectionString);
         _baselines = new BaselineRepository(db.ConnectionString);
         _events = new AnomalyEventRepository(db.ConnectionString);
@@ -165,5 +167,37 @@ public class RepositoryDatabaseTests
         Assert.Equal(city.Id, _cities.FindByPlace("Yogyakarta", -7.7951, 110.3702)?.Id);   // both round to -7.80, 110.37
         Assert.Null(_cities.FindByPlace("Yogyakarta", -7.7800, 110.3695));                // -7.78 is another place
         Assert.Null(_cities.FindByPlace("Jakarta", -7.7956, 110.3695));
+    }
+
+    // ---- HistoricalObservationRepository.AddRange (FR-07) ------------------
+
+    [Fact]
+    public void AddRange_stores_30_years_and_skips_rows_already_stored_or_repeated()
+    {
+        var city = AddCity();
+        var history = _history;
+        HistoricalObservation Row(MetricType metric, DateTime day, double value) => new()
+        {
+            CityId = city.Id, MetricType = metric, ObservedAt = day, Value = value,
+            FetchedAt = new DateTime(2026, 11, 29, 0, 0, 0, DateTimeKind.Utc)
+        };
+        var first = new DateTime(1995, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var days = Enumerable.Range(0, 10958).Select(i => first.AddDays(i)).ToList();   // 1995-01-01 to 2024-12-31
+        var all = days.SelectMany(d => new[]
+        {
+            Row(MetricType.Temperature, d, 27.25), Row(MetricType.Precipitation, d, 4.5), Row(MetricType.WindSpeed, d, 11.0)
+        }).ToList();
+
+        Assert.Equal(32874, history.AddRange(all));
+
+        // A second load stores nothing new; a duplicate inside one batch is stored once.
+        Assert.Equal(0, history.AddRange(all.Take(100)));
+        var extra = Row(MetricType.Temperature, new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), 30.5);
+        Assert.Equal(1, history.AddRange([extra, extra]));
+
+        var stored = history.GetRange(city.Id, MetricType.Temperature, first, first.AddDays(1));
+        Assert.Equal([(first, 27.25), (first.AddDays(1), 27.25)], stored.Select(o => (o.ObservedAt, o.Value)));
+        Assert.Equal("open-meteo", stored[0].Source);
+        Assert.Equal(0, history.AddRange([]));   // an empty batch is fine
     }
 }
