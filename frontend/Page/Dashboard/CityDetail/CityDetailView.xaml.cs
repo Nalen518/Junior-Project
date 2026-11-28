@@ -113,7 +113,7 @@ public partial class CityDetailView : UserControl
             {
                 Events.Add(
                     new EventRow(
-                        item.Tier.ToString(),
+                        $"{item.Tier} · {MetricDisplay.Name(item.Metric)}",
                         FormatDateRange(item),
                         item.Status.ToString()
                     )
@@ -458,14 +458,8 @@ public partial class CityDetailView : UserControl
         }
     }
 
-    private static string FormatLocation(CityDto city)
-    {
-        var region = string.IsNullOrWhiteSpace(city.AdminRegion)
-            ? city.CountryCode
-            : $"{city.AdminRegion}, {city.CountryCode}";
-
-        return $"{region} · {city.Latitude:F2}, {city.Longitude:F2} · {city.Timezone}";
-    }
+    private static string FormatLocation(CityDto city) =>
+        $"{CityFormat.Place(city.AdminRegion, city.CountryCode)} · {CityFormat.Coordinates(city.Latitude, city.Longitude)} · {city.Timezone}";
 
     private static string FormatDateRange(AnomalyEventDto item)
     {
