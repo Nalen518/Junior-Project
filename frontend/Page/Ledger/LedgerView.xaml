@@ -79,8 +79,8 @@
                         SelectionChanged="Filter_Changed">
                         <ComboBoxItem Content="All metrics" IsSelected="True" />
                         <ComboBoxItem Content="Temperature" />
-                        <ComboBoxItem Content="Precipitation" />
-                        <ComboBoxItem Content="Wind speed" />
+                        <ComboBoxItem Content="Rain" />
+                        <ComboBoxItem Content="Wind" />
                     </ComboBox>
                 </StackPanel>
 
@@ -259,7 +259,7 @@
                         <Button
                             Margin="0,14,0,0"
                             Click="RetryButton_Click"
-                            Content="Retry" />
+                            Content="Try again" />
                     </StackPanel>
                 </Border>
             </Grid>
